@@ -37,8 +37,3 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-
-#files too big
-./data/raw/*
-./data/predictors/try_data.csv
-
