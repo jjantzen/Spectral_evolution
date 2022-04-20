@@ -1,0 +1,146 @@
+---
+title: "Checking discrepancies"
+author: "Johanna Jantzen"
+date: "November 18, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(spectrolab)
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(reshape2)
+
+```
+
+Etienne download versus my fulcrum download differences
+```{r fulcrum downloads}
+
+#read in spectral data object
+
+Etienne_data <- read.csv("https://web.fulcrumapp.com/shares/5c5290b884ab3734.csv") # Fulcrum data share link
+
+Shan_spectra <- readRDS("./data/all_spectra.rds")
+
+#get metadata object from spectra
+metadata_Shan <- meta(Shan_spectra)
+
+#get species list from spectral data
+species_Shan <- meta(Shan_spectra, "species", simplify = TRUE)
+
+#get metadata from additional metadata file (downloaded separately from fulcrum)
+Johanna_data <- read.csv("./data/metadata/leaf_spectra.csv", stringsAsFactors = FALSE)
+
+```
+
+Checking for differences in my and Etienne's metadata
+
+``` {r compare}
+
+#check which sample IDS are not in my sample IDs
+Johanna_missing <- Etienne_data[-which(Etienne_data$sample_id %in% Johanna_data$sample_id),]
+
+Etienne_missing <- Johanna_data[-which(Johanna_data$sample_id %in% Etienne_data$sample_id),]
+
+
+
+nrow(Johanna_missing)
+nrow(Etienne_missing)
+
+```
+Mine is missing 461 and Etienne's is missing 0 samples 
+
+``` {R which mising}
+
+
+#there are no NA scientific names in Etienne's data
+Etienne_data[which(is.na(Etienne_data$scientific_name)),]
+
+#there are no NA scientific name in Johanna's data
+Johanna_data[which(is.na(Johanna_data$scientific_name)),]
+
+#there are 126 names in Etienne's data
+unique(Etienne_data$scientific_name)
+
+#there are 91 names in Johanna's data therefore 35 species names are missing in Johanna's metadata
+unique(Johanna_data$scientific_name)
+
+#there are samples of 71 species missing from Johanna's metadata that are in Etienne's (maybe not unique names)
+unique(Johanna_missing$scientific_name)
+
+#these missing samples include samples from four categories of data
+unique(Johanna_missing$status)
+
+#there are samples from 8 projects missing in my metadata that are in Etienne's
+unique(Johanna_missing$project)
+
+#which project are the deleted ones missing from? 3: CABO-test, 2018-Hacker-PhD-UBC and 2019-Blanchard-MSc-UdeM
+unique(Johanna_missing$project[which(Johanna_missing$status == "deleted")])
+
+#which project are the NOT deleted ones missing from? 8 projects
+unique(Johanna_missing$project[-which(Johanna_missing$status == "deleted")])
+
+#Verified samples are missing from the CABO-test project
+unique(Johanna_missing$project[which(Johanna_missing$status == "verified")])
+
+#Pending samples are missing from CABO-test and 2019-Pardo-MSc-UdeM
+unique(Johanna_missing$project[which(Johanna_missing$status == "pending")])
+
+#Submitted samples are missing from 7 projects
+unique(Johanna_missing$project[which(Johanna_missing$status == "submitted")])
+
+#Johanna's data is missing all 2019-Pardo while Etienne's has 71 samples from 2019-Pardo
+"2019-Pardo-MSc-UdeM" %in% unique(Johanna_data$project)
+"2019-Pardo-MSc-UdeM" %in% unique(Etienne_data$project)
+
+length(Etienne_data$sample_id[which(Etienne_data$project == "2019-Pardo-MSc-UdeM")])
+
+#Are all the missing samples from Pardo? No, but samples of 71 species are (71 of the 461 are)
+length(Johanna_missing$sample_id[which(Johanna_missing$project == "2019-Pardo-MSc-UdeM")])
+length(Johanna_missing$sample_id[-which(Johanna_missing$project == "2019-Pardo-MSc-UdeM")])
+nrow(Johanna_missing)
+
+```
+
+Now to compare Etienne's data with the spectral data
+
+```{r spectral comparison}
+
+# Etienne_data 
+# 
+# Shan_spectra 
+# 
+# metadata_Shan 
+# 
+# species_Shan 
+# 
+# Johanna_data
+
+#which samples are missing from full metadata 
+Etienne_missing_from_Shan <- metadata_Shan[-which(metadata_Shan$sample_id %in% Etienne_data$sample_id),]
+Shan_missing_from_Etienne <- Etienne_data[-which(Etienne_data$sample_id %in% metadata_Shan$sample_id),]
+Johanna_missing_from_Shan <- metadata_Shan[-which(metadata_Shan$sample_id %in% Johanna_data$sample_id),]
+
+#200 samples missing from Etienne metadata in Shan spectral data
+nrow(Etienne_missing_from_Shan)
+
+#626 samples missing from Johanna metadata in Shan spectral data
+nrow(Johanna_missing_from_Shan)
+
+#which projects are missing - 2017-Dessain-MSc missing from Etienne data
+unique(Etienne_missing_from_Shan$project)
+unique(Shan_missing_from_Etienne$project)
+unique(Johanna_missing_from_Shan$project) # missing from 8 projects
+
+#have species IDs for samples missing metadata but not other metadata
+is.na(Etienne_missing_from_Shan$species)
+
+Johanna_missing_from_Shan$project[which(is.na(Johanna_missing_from_Shan$species))] #included somes samples which had no species ID, from Pardo and SWA-Warren projects
+
+```
+
+It seems that the main issues (now that I have Etienne's data with more of the discrepancies resolved), is that the metadata is missing for the 2017-Dessain-MSc project. 
+For the data availble for me (Johanna) to download from the Fulcrum website, there was more information missing compared to the spectral data, including for samples from 8 projects (with all of the 2019-Pardo project missing), and including samples without species IDs in Shan's spectral data. 

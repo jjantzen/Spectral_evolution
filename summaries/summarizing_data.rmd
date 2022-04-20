@@ -1,0 +1,761 @@
+---
+title: "Summarizing data"
+author: "Johanna Jantzen"
+date: "November 18, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(spectrolab)
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(reshape2)
+library(ggplot2)
+library(forcats)
+library(taxize)
+library(jsonlite)
+library(purrr)
+library(tibble)
+library(stringr)
+
+```
+
+``` {r create functions,  include=FALSE}
+
+#make presence_absence function
+presence_absence <-function(data){
+  tnt <- as.data.frame(data)
+  # Create an ID column to hold the row index
+  tnt$ID <- seq.int(nrow(tnt))
+  out=dcast(tnt, ID ~data, length)
+  
+  # Get rid of the ID column from the matrix
+  drops=c("ID")
+  out=out[ , !(names(out) %in% drops)]
+  
+  return(out)
+}
+
+#make splitting species names function
+splitting_species_names <- function(species_names_dataframe){
+  sample_meta_names <- species_names_dataframe %>% 
+    separate(PL.scientific_name, c("genus", "specific_epithet", "extra0", "extra1", "extra2", "extra3", "extra4", "extra5", "extra6", "extra7", "extra8", "extra9", "extra10"), sep = " ", fill = "right", remove = FALSE)
+  
+  #deal with subspecific names
+  sample_meta_names$subspecific <- NA
+  sample_meta_names$subspecific[which(sample_meta_names$extra5 == "australis")] <- paste0(sample_meta_names$extra4[which(sample_meta_names$extra5 == "australis")], "_", sample_meta_names$extra5[which(sample_meta_names$extra5 == "australis")])
+  
+  sample_meta_names$subspecific[which(sample_meta_names$extra2 == "angustifolia")] <- paste0(sample_meta_names$extra1[which(sample_meta_names$extra2 == "angustifolia")], "_", sample_meta_names$extra2[which(sample_meta_names$extra2 == "angustifolia")])
+  sample_meta_names$subspecific[which(sample_meta_names$extra2 == "vaginatum")] <- paste0(sample_meta_names$extra1[which(sample_meta_names$extra2 == "vaginatum")], "_", sample_meta_names$extra2[which(sample_meta_names$extra2 == "vaginatum")]) 
+  
+  sample_meta_names$subspecific[which(sample_meta_names$extra1 == "spissum")] <- paste0(sample_meta_names$extra0[which(sample_meta_names$extra1 == "spissum")], "_", sample_meta_names$extra1[which(sample_meta_names$extra1 == "spissum")])
+  sample_meta_names$subspecific[which(sample_meta_names$extra1 == "strigosus")] <- paste0(sample_meta_names$extra0[which(sample_meta_names$extra1 == "strigosus")], "_", sample_meta_names$extra1[which(sample_meta_names$extra1 == "strigosus")]) 
+  sample_meta_names$subspecific[which(sample_meta_names$extra1 == "rugosa")] <- paste0(sample_meta_names$extra0[which(sample_meta_names$extra1 == "rugosa")], "_", sample_meta_names$extra1[which(sample_meta_names$extra1 == "rugosa")])
+  return(sample_meta_names)
+}
+
+
+```
+##Summary of Data
+
+In this document, I summmarize the data available from the CABO project. 
+
+I am using Fulcrum metadata downloaded on November 17, 2020 using the following link. 
+
+
+```{r download metadata}
+
+#read in metadata object
+#metadata_fulcrum <- read.csv("https://web.fulcrumapp.com/shares/5c5290b884ab3734.csv", stringsAsFactors = FALSE) # Fulcrum data share link (first edit column names for reading)
+metadata_fulcrum <- read.csv("./data/exported_raw/leaf_spectra.csv", stringsAsFactors = FALSE)
+
+```
+
+
+The spectral data available was compiled by Shan Kothari (received October 21, 2020). 
+
+```{r read in spectral data}
+
+#this is the preliminary version (cleaned by Shan)
+spectral_data <- readRDS("./data/all_spectra.rds")
+
+#get the metadata from the spectra object
+metadata_Shan <- meta(spectral_data)
+
+```
+
+I will first reduce the metadata to those samples with spectra in Shan's spectral data file. Those samples missing from the spectral file are saved in a list. 
+
+``` {r match datasets}
+
+#keep only the metadata from fulcrum for samples in Shan's spectral file
+matched_meta <- metadata_fulcrum[which(metadata_fulcrum$sample_id %in% metadata_Shan$sample_id),]
+nrow(matched_meta)
+
+#those spectra without metadata
+missing_spectra <- metadata_fulcrum[-which(metadata_fulcrum$sample_id %in% metadata_Shan$sample_id),]
+nrow(missing_spectra)
+
+#there are some submitted samples without spectra (only 19?)
+unique(missing_spectra$status)
+#missing_spectra[which(missing_spectra$status == "submitted"),]
+
+#those samples without spectra
+missing_metadata <- metadata_Shan[-which(metadata_Shan$sample_id %in% metadata_fulcrum$sample_id),]
+nrow(missing_metadata)
+
+#Exclude spectra from Dessain because no metadata and because they used a different instrument to measure spectra
+unique(missing_metadata$project)
+
+#save missing data objects
+saveRDS(missing_spectra, "./data/tidy/fulcrum_missing_spectra.rds")
+saveRDS(missing_metadata, "./data/tidy/spectra_missing_fulcrum.rds")
+
+```
+
+
+With the matched dataset, I merge the leaf spectra (only those whose status is submitted), bulk sample, and plant dataframes. I check for duplicate sample IDs and errors in matching plant ID to sample ID. 
+
+``` {r match species names}
+
+#make sure no missing IDs for metadata
+still_missing_species_IDS <- matched_meta$sample_id[which(is.na(matched_meta$species))]
+
+#make sure only submitted samples - remove statuses
+#nrow(matched_meta)
+status_matched_meta <- matched_meta[which(matched_meta$status == "submitted"),]
+#nrow(status_matched_meta)
+
+#need to match plant ID with sample ID because taxonomy of leaf spectra metadata is not updated (as a rule)
+
+#read plants data
+plants <- read.csv("./data/exported_raw/plants.csv", stringsAsFactors = FALSE)
+
+#read bulk sample data to merge plants and leaf spectra data
+bulk_samples <- read.csv("./data/exported_raw/bulk_leaf_samples.csv", stringsAsFactors = FALSE)
+
+#retrieve plant ids for samples in leaf spectra (separately)
+plant_id_for_spectra <- bulk_samples[which(bulk_samples$sample_id %in% status_matched_meta$sample_id),]
+nrow(plant_id_for_spectra) #2051
+length(status_matched_meta$sample_id) #2052 - one more sample than have plant ids
+#there is one sample that has a unqiue sample_id but no plant_id
+
+#checking for duplicate sample_ids
+unique(status_matched_meta$sample_id %in% bulk_samples$sample_id)
+status_matched_meta[which(duplicated(status_matched_meta$sample_id) == TRUE),c(9,10,12,13,19,20,21,22)] #sample_id = 44682364
+#status_matched_meta[which("44682364"%in% status_matched_meta$sample_id),]
+bulk_samples[which(bulk_samples$sample_id == "44682364"),c(9,10,12,13,21,22,23,26,30)] #plant_id = 44226204; sample_id = 44682364
+status_matched_meta[which(status_matched_meta$sample_id == "44682364"),c(4,9,10,12,13,19,20,21,22,23,26,30)] #two samples with different gps but same sample_id
+#bulk_samples[which(bulk_samples$sample_id == "44682364"),] #two samples with different gps but same sample_id, and one plant id (for the sample id in bulk samples)
+nrow(status_matched_meta) #2052
+
+#remove sample without plant id
+status_matched_meta <- status_matched_meta[-which(status_matched_meta$sample_id == "44682364"),]
+nrow(status_matched_meta) #2050
+
+#there is no missing plant id info in bulk samples for spectra after removing the duplicate sample ID
+missing_plant_id_for_spectra <- status_matched_meta$sample_id[-which(status_matched_meta$sample_id %in% bulk_samples$sample_id)]
+
+#get species IDs for plant ids in spectra
+species_ids_for_spectra <- plants[which(plants$plant_id %in% plant_id_for_spectra$plant_id),]
+nrow(species_ids_for_spectra)
+
+# #quite a few samples have duplicate plant_ids (as expected)
+# plant_id_for_spectra[which(duplicated(plant_id_for_spectra$plant_id) == TRUE),]
+
+#make new dataframe for matching species ids and plant_ids
+
+#first change name of columns to match origin
+colnames(status_matched_meta) <- paste0("LS.", names(status_matched_meta))
+colnames(bulk_samples) <- paste0("BS.", names(bulk_samples))
+colnames(plants) <- paste0("PL.", names(plants))
+#colnames(plants)
+
+#first join bulk samples by sample id
+species_reconc <- merge(status_matched_meta, bulk_samples, by.x = "LS.sample_id", by.y = "BS.sample_id", all.x = TRUE)
+nrow(species_reconc)
+
+length(unique(species_reconc$BS.plant_id)) #1804
+length(unique(species_reconc$LS.sample_id)) #2050
+#species_reconc$LS.sample_id
+
+#then add plant ids
+species_reconc <- merge(species_reconc, plants, by.x = "BS.plant_id", by.y = "PL.plant_id", all.x = TRUE) #those colnames without a specifier are from the plants dataframe
+nrow(species_reconc)
+#why does this step add a sample
+length(unique(species_reconc$BS.plant_id)) #1804
+length(unique(species_reconc$LS.sample_id)) #2050
+
+#didn't add the sample with duplicate sample_id above
+nrow(species_reconc[which(species_reconc$LS.sample_id == "44682364"),])
+nrow(species_reconc[which(species_reconc$BS.plant_id == "44226204"),])
+
+#check for duplicate sample_ids
+#species_reconc[which(species_reconc$LS.sample_id[which(duplicated(species_reconc$LS.sample_id) == TRUE)][1] %in% status_matched_meta$LS.sample_id),]
+
+#duplicated sample id
+species_reconc$LS.sample_id[which(duplicated(species_reconc$LS.sample_id) == TRUE)][1] #41295307
+
+#41295307 sample id
+#plant id 40175425
+species_reconc[which(species_reconc$LS.sample_id == "41295307"),c(1,2,11,12,21,22,23,24,78,83,84,86,87,95,96,99,129,134,135,137,138,142,158,163,164,176)] #different gps for plants and plant created by different people
+species_reconc[which(species_reconc$BS.plant_id == "40175425"),c(1,2,11,12,21,22,23,24,78,83,84,86,87,95,96,99,129,134,135,137,138,142,158,163,164,176)] #I think the issue is two different trees entered into plant database with same plant ID and therefore linked to sample ID because single sample in leaf spectra
+status_matched_meta[which(status_matched_meta$LS.sample_id == "41295307"),c(4,9,10,12,13,19,20,21,22,23)]
+
+plants[which(plants$PL.plant_id == "40175425"),c(4,9,10,12,13,17,22,39,40,52,54)] #two plants with same plant ID in plants dataframe
+
+#remove two samples with different trees (for now) - can revisit if plant is fixed
+species_reconc <- species_reconc[-which(species_reconc$BS.plant_id == "40175425"),]
+nrow(species_reconc)
+
+#check a plant id example
+species_reconc[which(species_reconc$BS.plant_id == "8553450"),c(1,2,22,23,84,86,87,95,176)]
+
+unique(species_reconc$BS.plant_id[which(species_reconc$PL.scientific_name == "Betula populifolia Marshall")])
+nrow(species_reconc)
+
+#save as reference point
+saveRDS(species_reconc, "./data/tidy/species_reconcile_plants.rds")
+
+```
+
+Of 2052 samples of status "submitted", there are 2051 with plant IDs (this is resolved after removing duplicate samples). There are two samples in the leaf spectra dataframe with duplicate sample IDs. These were removed here leaving 2050 samples. After merging the dataframes, two different plants (different species names, different locations) with the same plant ID were identified. These were also removed, leaving 2049 samples. 
+
+Next, the data are tidied to get dates and names into separate fields. The **correct** species names are in the plants database, so in the PL.scientific_name column.
+
+```{r tidy data}
+
+#first, get the field which has correct species names
+
+#make dataframes with structure: sample_ID, proj_name, sp_name.lf, sp_name.pl, date, siteID.ls, plant_id, 
+#colnames(species_reconc)
+small_matched_meta <- species_reconc %>% 
+  select(BS.plant_id, LS.sample_id, LS.project, LS.latitude, LS.longitude, LS.site_id, LS.scientific_name, LS.date_measured, LS.gps_altitude, BS.project, BS.latitude, BS.longitude, BS.scientific_name, BS.site_id, BS.plant_remarks, BS.date_sampled, BS.time_sampled, PL.project, PL.latitude, PL.longitude, PL.site, PL.plot, PL.site_id, PL.plot_id, PL.plant_remarks, PL.vascan_taxon, PL.scientific_name, PL.identification_qualifier, PL.altitude)
+
+str(small_matched_meta)
+
+#remove samples without corresponding plant in plants database 
+small_matched_meta <- small_matched_meta[-which(is.na(small_matched_meta$PL.scientific_name)),]
+
+#see which differences there are in species ID in the different datasets
+mismatched_names <- data.frame(spectral_name = as.character(), plants_name = as.character(), sample_name = as.character())
+for (i in 1:nrow(small_matched_meta)){
+  spectral_name <- small_matched_meta$LS.scientific_name[i]
+  plants_name <- small_matched_meta$PL.scientific_name[i]
+  sample_name <- small_matched_meta$LS.sample_id[i]
+  next_one <- data.frame(spectral_name, plants_name, sample_name)
+  if (spectral_name != plants_name){
+    mismatched_names <- rbind(mismatched_names, next_one)
+  }
+}
+
+nrow(small_matched_meta)
+nrow(mismatched_names)
+
+saveRDS(mismatched_names, "./data/tidy/mismatched_names.rds")
+
+```
+
+There are 167 samples with names that need updating (will update all but those have changes). Spectral dataframe will be updated with the PL.scientific_name column. 
+
+```{r splitting names and dates}
+
+# #convert date to ymd from mdy - not necessary for data from metadata as imported here
+# small_matched_meta$YMD <- mdy(small_matched_meta$LS.date_measured)
+
+#separate species names into genus, species, authority
+
+#run for metadata species names (from index page)
+names_splitting_metadata <- splitting_species_names(small_matched_meta)
+
+# #check for subspecific names through extra columns
+# unique(names_splitting_metadata$extra0)#subsp. var. 
+# unique(names_splitting_metadata$extra1)#subsp. var. spissum rugosa strigosus
+# unique(names_splitting_metadata$extra2)#angustifolia vaginatum altissima 
+# unique(names_splitting_metadata$extra3)#
+# unique(names_splitting_metadata$extra4)#subsp. 
+# unique(names_splitting_metadata$extra5)#australis
+# unique(names_splitting_metadata$extra6)#
+# unique(names_splitting_metadata$extra7)
+# unique(names_splitting_metadata$extra8)
+# unique(names_splitting_metadata$extra9)
+# unique(names_splitting_metadata$extra10)
+# unique(names_splitting_metadata$extra11)
+
+#those with out specific epithets - leave in for now, except that without plant entry
+names_splitting_metadata[which(is.na(names_splitting_metadata$extra0)),c(1:3,7,13,27)] #the quercus entries will be just quercus
+
+#remove the sample without a name in the plant entry
+names_splitting_metadata <- names_splitting_metadata[-which(names_splitting_metadata$BS.plant_id == "44667317"),]
+
+#the original entry for that plant without a name
+#plants[which(plants$PL.plant_id == "44667317"),]
+
+#remove specific epithet "Linnaeus" for Quercu ssamples
+names_splitting_metadata$specific_epithet[which(names_splitting_metadata$specific_epithet == "Linnaeus")] <- NA
+
+#get rid of extra columns due to subspecific names  (edit as needed)
+metadata_with_names <- names_splitting_metadata[,-c(30:40)]
+
+#get separate columns for year month day
+#is date sampled or date measured most accurate? Are there ever differences?
+metadata_with_dates <- metadata_with_names %>%
+  mutate(year_sampled = lubridate::year(BS.date_sampled), month_sampled = lubridate::month(BS.date_sampled),
+         day_sampled = lubridate::day(BS.date_sampled), year_measured = lubridate::year(LS.date_measured), month_measured = lubridate::month(LS.date_measured), day_measured = lubridate::day(LS.date_measured))
+
+#use presence_absence function to convert locations into separate columns of P/A matrix
+#using BS.site_id because PL.site_id has one sample with no site_id #plant_i 39920403
+locations_matrix <- as.data.frame(presence_absence(metadata_with_dates$BS.site_id))
+#colnames(locations_matrix)
+
+#join locations to date/names meta dataframe
+sample_locations_dates <- cbind(metadata_with_dates, locations_matrix)
+
+
+#check for any other naming errors or inconsistencies 
+sort(unique(sample_locations_dates$specific_epithet))
+
+#Eg. pennsylvanica vs pensylvanica vs pensylvanicum
+sample_locations_dates[which(sample_locations_dates$specific_epithet == "pennsylvanica"),c(1:3,7,13,27)] #Fraxinus
+sample_locations_dates[which(sample_locations_dates$specific_epithet == "pensylvanica"),c(1:3,7,13,27)] #Prunus
+sample_locations_dates[which(sample_locations_dates$specific_epithet == "pensylvanicum"),c(1:3,7,13,27)] #Acer
+
+#Do I need to replace _ with space?
+sample_locations_dates$subspecific <- gsub("_", " ", sample_locations_dates$subspecific)
+
+saveRDS(sample_locations_dates, "./data/tidy/metadata_with_dates_names_locations.rds")
+
+nrow(sample_locations_dates)
+
+```
+
+I have dates and names parsed and resolved naming issues leaving 2046 samples. I then summarize the number of species and samples by project and by site with dates of measurements.
+
+``` {r summarizing data}
+
+final_metadata <- sample_locations_dates
+colnames(final_metadata)
+
+#group by project and species to get number of samples per species per project with P/A of locations per species
+#may need to adjust across numbers = just the columns of locations
+aggregated_project_data <- final_metadata %>% 
+  group_by(LS.project, genus, specific_epithet, subspecific) %>% 
+  summarise(n_ind = n(), month_range = paste0(min(month_measured), "-", max(month_measured)),  n_locations = length(unique(BS.site_id)), across(c(35:83), max)) #, n_species = n(unique(species))
+
+#get range of dates and locations by species
+aggregated_species_data <- final_metadata %>% 
+  group_by(genus, specific_epithet, subspecific) %>% 
+  summarise(n_ind = n(), month_range = paste0(min(month_measured), "-", max(month_measured)), n_locations = length(unique(BS.site_id)), across(c(36:84), max)) #, n_species = n(unique(species))
+
+#get number of individuals, species and range of collection by site
+aggregated_site_data <- final_metadata %>% 
+  group_by(BS.site_id) %>% 
+  summarise(n_ind = n(), month_range = paste0(min(month_measured), "-", max(month_measured)), n_species = length(unique(PL.scientific_name))) 
+
+#get info from summary
+head(aggregated_project_data)
+head(aggregated_species_data)
+head(aggregated_site_data)
+max(aggregated_species_data$n_ind)
+min(aggregated_species_data$n_ind)
+max(aggregated_species_data$n_locations)
+min(aggregated_species_data$n_locations)
+max(aggregated_project_data$n_ind)
+min(aggregated_project_data$n_ind)
+max(aggregated_site_data$n_species)
+min(aggregated_site_data$n_species)
+max(aggregated_site_data$n_ind)
+min(aggregated_site_data$n_ind)
+nrow(aggregated_species_data)
+
+saveRDS(aggregated_site_data, "./data/tidy/aggregated_site_data.rds")
+saveRDS(aggregated_project_data, "./data/tidy/aggregated_project_data.rds")
+saveRDS(aggregated_species_data, "./data/tidy/aggregated_species_data.rds")
+
+```
+
+There are between 1 and 125 samples per species across all projects, or between 1 and 115 samples per species within one project. Each species is found at between 1 and 10 locations (sites). Sites range from having 1 to 25 species, and between 3 and 268 samples. There are a total of 120 species across all sites and projects.
+
+I will plot the distribution of numbers of samples and species across sites.
+
+
+``` {r further summary}
+
+# #The objects used:
+# aggregated_species_data
+# aggregated_project_data
+# aggregated_site_data
+
+#get stats on various thresholds of species records and sites
+colnames(aggregated_species_data)
+
+#get list of species that are found in >2 locations and where they are located
+n2_locations <- aggregated_species_data %>% 
+  melt(id = c(1:6)) %>% 
+  filter(n_locations > 2 & value == 1) %>% 
+  select(c(1:7)) 
+
+#make matrix of just locations where more than 2 species present
+n2_locations_matrix <- as.data.frame(presence_absence(n2_locations$variable))
+
+#get locations with the most taxa
+top_sites_by_sp <- aggregated_site_data %>% 
+  arrange(desc(n_species)) %>% 
+  mutate(name = fct_reorder(BS.site_id, desc(n_species)))
+
+#get species with most sites
+top_species_by_site <- aggregated_species_data %>% 
+  arrange(desc(n_locations)) %>% 
+  mutate(name = fct_reorder(c(paste(genus, specific_epithet, subspecific)), desc(n_locations)))
+
+top_species_by_site$name <- gsub(" NA", "", top_species_by_site$name)
+  
+#plot by site
+ggplot(top_sites_by_sp)+
+  geom_point(aes(x = name, y = n_species), colour = "blue") +
+  geom_point(aes(x = name, y = n_ind/10), colour = "red")
+
+#plot by species
+ggplot(top_species_by_site)+
+  geom_point(aes(x = name, y = n_locations), colour = "blue") 
+
+length(top_species_by_site$name)
+nrow(top_species_by_site)
+top_species_by_site$name[1:10]
+  
+#the top 6 sites by number of species
+top_6_sites <- head(top_sites_by_sp)
+top_24_sites <- top_sites_by_sp %>% 
+  filter(n_species > 3)
+top_11_sites <- top_sites_by_sp[1:11,]
+
+#get species lists for top 6 sites
+sp_top6_sites <- aggregated_species_data %>% 
+  melt(id = c(1:6)) %>% 
+  filter(variable %in% top_6_sites$BS.site_id) %>% 
+  spread(variable, value) %>% 
+  mutate(n_top_sites = rowSums(.[7:12])) %>% 
+  filter(n_top_sites > 0) %>% 
+  arrange(desc(n_top_sites))
+
+#get species lists for top 24 sites
+sp_top24_sites <- aggregated_species_data %>% 
+  melt(id = c(1:6)) %>% 
+  filter(variable %in% top_24_sites$BS.site_id) %>% 
+  spread(variable, value) %>% 
+  mutate(n_top_sites = rowSums(.[7:30])) %>% 
+  filter(n_top_sites > 0) %>% 
+  arrange(desc(n_top_sites, n_ind))
+
+#get species lists for top 11 sites
+sp_top11_sites <- aggregated_species_data %>% 
+  melt(id = c(1:6)) %>% 
+  filter(variable %in% top_11_sites$BS.site_id) %>% 
+  spread(variable, value) %>% 
+  mutate(n_top_sites = rowSums(.[7:17])) %>% 
+  filter(n_top_sites > 0) %>% 
+  arrange(desc(n_top_sites))
+
+#get number of species for top sites
+nrow(sp_top6_sites)
+nrow(sp_top11_sites)
+nrow(sp_top24_sites)
+
+#get number of species that are singletons for top sites
+nrow(sp_top24_sites[which(sp_top24_sites$n_top_sites == 1),])
+nrow(sp_top11_sites[which(sp_top11_sites$n_top_sites == 1),])
+nrow(sp_top6_sites[which(sp_top6_sites$n_top_sites == 1),])
+
+#get number of species that are singletons or not for all sites
+nrow(aggregated_species_data[which(aggregated_species_data$n_locations == 1),])
+nrow(aggregated_species_data[which(aggregated_species_data$n_locations > 1),])
+nrow(aggregated_species_data)
+
+#get genera for species found in multiple sites overall
+unique(aggregated_species_data$genus[which(aggregated_species_data$n_locations > 1)])
+
+#get number of species for each genus found in multiple sites overall
+unique(aggregated_species_data[which(aggregated_species_data$n_locations > 1),]) %>% 
+  group_by(genus) %>% 
+  summarise(n_sp_per_genus = length(unique(specific_epithet))) %>% 
+  arrange(desc(n_sp_per_genus))
+
+```
+
+There are 6, 11, and 24 sites which have high number of species. For the top 6 species, this includes MtMeg-1 (25), CGOP_1 (25), GroboisFieldEL (21), SBLUdeM-f (13), IdB_ile_ste_marg (12), and Mont-Royal (12). These sites have 83 species total, with none that overlap among all 6 sites, and each species found in a maximum of 2 sites of the top 6 by species richness. 61/83 species are found at only a single of the top 6 sites. 
+
+For the top 11 sites, there are 103 species total, with species occurring in maximum of 5/11 sites. 67/103 species are found at only a single of the top 11 sites.
+
+For the top 24 sites, there are 113 species total, with species occurring in a maximum of 6/24 sites. 54/113 species are found at only a single of the top 24 sites. 
+
+For the purpose of comparing spectra across sites by species, there are 62 singleton species (occurring in only 1 site overall), and 58 species which occur in more than 1 site overall, for a total of 120 species. The species that occur in multiple sites belong to 37 genera, including conifers, Rosids, Asterids and monocots, although there are more rosid species overall (based on skimming list) with most species in the genera Acer, Quercus, and Populus. 
+
+``` {r other elements}
+
+#get growth form/habit from flora - not actually included in vascan column - plants$PL.vascan_filter_growth_form
+
+growth_form <- data.frame(species = sort(unique(final_metadata$PL.scientific_name)), growth_form = as.character(NA), stringsAsFactors = FALSE) 
+
+#write to edit and enter growth forms from vascan web search (unable to download)
+#those from tropics without growth form so far (NA)
+#write.csv(growth_form, "./data/tidy/growth_forms.csv", row.names = FALSE)
+
+#read edited growth_form
+growth_form_2 <- read.csv("./data/tidy/growth_forms.csv", header = TRUE, stringsAsFactors = FALSE)
+
+#add column for woody/not
+growth_form_2$woody <- NA
+growth_form_2$woody[which(growth_form_2$growth_form == "Tree" | growth_form_2$growth_form == "Shrub" | growth_form_2$growth_form == "Tree/Shrub")] <- "1"
+growth_form_2$woody[which(growth_form_2$growth_form == "Herb")] <- "0"
+growth_form_2$woody[which(growth_form_2$growth_form == "Vine")] <- "1"
+
+#spread to get column per growth form type
+spreading_habit <-presence_absence(growth_form_2$growth_form)
+
+#add those in two categories
+spreading_habit$Tree[which(spreading_habit$`Tree/Shrub` == 1)] <- 1
+spreading_habit$Shrub[which(spreading_habit$`Tree/Shrub` == 1)] <- 1
+#get rid of original column
+spreading_habit <- spreading_habit[,-4]
+
+#merge types of growth form objects
+growth_form_3 <- cbind(scientific_name = growth_form_2$species, spreading_habit, Woody = growth_form_2$woody)
+colnames(growth_form_3)[6] <- "No_info"
+
+saveRDS(growth_form_3, "./data/tidy/growth_form_tidy.rds")
+
+#summarize information on growth form
+summary_of_growth_forms <- growth_form_3[,-1] %>%  #start with the data frame
+  map_dfc(table) %>%  # use map_df from the purrr package to "table" each column
+  rownames_to_column("response") %>% #convert the rownames to a column named response
+  mutate(resp = case_when(response == 1 ~ "No", #change the resulting 1s to No in resp
+                          response == 2 ~ "Yes")) %>%  #change the resulting 2s to Yes in resp
+  select(resp, everything(), -response) %>%  #reorder the columns with resp at the front, removing response 
+  arrange(desc(resp))
+
+write.csv(summary_of_growth_forms, "./data/tidy/summary_growth_form.csv", row.names = FALSE)
+
+#For taxonomy
+#retrieve info from vascan
+vascan_output <- vascan_search(growth_form$species, format="json", raw = TRUE)
+
+#convert format from json to list
+vascan_r <- fromJSON(vascan_output, TRUE, TRUE)
+
+#get family, order, clade from taxize
+#to get higher classification eg Order, family and higher clade
+
+taxonomy_table <- data.frame(species = character(121), clade = character(121), class = character(121), order = character(121), family = character(121), stringsAsFactors = FALSE)
+
+#for simplicity, for Magnoliidae, the class is actually the superorder?
+#also excluding the tropical plants
+for(i in 1:length(vascan_r$results$matches)){
+  if (!is.null(vascan_r$results$matches[[i]]) == TRUE & !is.null(vascan_r$results$matches[[i]]$taxonomicAssertions[[1]]$higherClassification) == TRUE){
+    higher_class <- vascan_r$results$matches[[i]]$taxonomicAssertions[[1]]$higherClassification
+    highest_clade <- str_split(higher_class, ";")[[1]][1]
+    if (str_split(higher_class, ";")[[1]][2] == "Magnoliidae"){
+      class <- str_split(higher_class, ";")[[1]][3]
+      order <- str_split(higher_class, ";")[[1]][4]
+      family <- str_split(higher_class, ";")[[1]][5]
+    } else if (str_split(higher_class, ";")[[1]][2] == "Pinidae"){
+      class <- str_split(higher_class, ";")[[1]][2]
+      order <- str_split(higher_class, ";")[[1]][3]
+      family <- str_split(higher_class, ";")[[1]][4]
+    }
+    species <- vascan_r$results$matches[[i]]$taxonomicAssertions[[1]]$acceptedNameUsage
+    taxonomy_table$species[i] <- as.character(species)
+    taxonomy_table$clade[i] <- highest_clade
+    taxonomy_table$class[i] <- class
+    taxonomy_table$order[i] <- order
+    taxonomy_table$family[i] <- family
+  } else {
+    taxonomy_table$species[i] <- NA
+    taxonomy_table$clade[i] <- NA
+    taxonomy_table$class[i] <- NA
+    taxonomy_table$order[i] <- NA
+    taxonomy_table$family[i] <- NA
+  }
+  #return(taxonomy_table)
+}
+
+#remove empty rows (tropical species)
+taxonomy_table_2 <- taxonomy_table %>% 
+  filter(complete.cases(.))
+
+#save it for later
+saveRDS(taxonomy_table_2, "./data/tidy/taxonomy_table_higher_class.rds")
+write.csv(taxonomy_table_2, "./data/tidy/taxonomy_table_higher_class.csv", row.names = FALSE)
+        
+# #use if need to subdivide query
+# vascan_page <- rbind_pages(vascan_r)
+
+#get environmental variables for gps of plants?
+
+summary_of_growth_forms
+
+#summary of taxonomy
+n_per_class <- taxonomy_table_2 %>% 
+  group_by(class) %>% 
+  summarize(n = n()) %>% 
+  arrange(desc(n))
+
+n_per_order <- taxonomy_table_2 %>% 
+  group_by(order) %>% 
+  summarize(n = n())%>% 
+  arrange(desc(n))
+
+n_per_family <- taxonomy_table_2 %>% 
+  group_by(family) %>% 
+  summarize(n = n())%>% 
+  arrange(desc(n))
+
+#how many globally? how many in Canada?
+colnames(n_per_order) <- c("group", "CABO")
+colnames(n_per_class) <- c("group", "CABO")
+CABO <- rbind(n_per_class, n_per_order)
+
+relative_sampling <- data.frame(group = character(25), canada = integer(25), global = integer(25), stringsAsFactors = FALSE)
+
+dir_taxonomy <- list.files("./data/taxonomy", full.names = TRUE)
+taxonomy_files <- lapply(dir_taxonomy, read.delim)
+for(i in 1:length(taxonomy_files)){
+  num_sp <- length(taxonomy_files[which(taxonomy_files[[i]]$Rank == "Species")])
+  name <- as.character(taxonomy_files[[i]]$Scientific.name[1])
+  relative_sampling$group[i] <- name
+  relative_sampling$canada[i] <- num_sp
+}
+
+relative_sampling <- merge(relative_sampling, CABO)
+
+relative_sampling <- relative_sampling %>% 
+  mutate(CABO_canada_pct = round((CABO/canada*100), 2)) %>% 
+  arrange(desc(CABO_canada_pct))
+
+relative_sampling
+
+write.csv(relative_sampling, "./data/tidy/relative_sampling.csv", row.names = FALSE)
+
+```
+
+Using VASCAN, I resolved species names and retrieved higher order classifications for all species in VASCAN (ie not tropical species). One species was also a synonym (Berberis aquifolium Pursh) so I need to go back and fix that before running VASCAN to get higher classification (or at beginning before any summary stuff). 
+
+I still need to get environmental data for plants (if doing that). 
+
+For a summary of growth forms, there are 32 herbs, 26 shrubs, 57 trees, 1 vine, and 15 without growth form info. There are overall 73 woody (tree/shrub) and 32 herbaceous species of those with info. 
+
+There are five classes: Asteranae (19), Caryophyllanae (1), Lilianae (15), Pinidae (11), and Rosanae (57). There are 20 orders (Fagales: 17, Rosales: 17, Poales: 13, Pinales: 10, Sapindales: 10 etc) and 28 families. There is a heavy bias to Rosids overall.
+
+As for how the taxonomic sampling corresponds with Canadian taxonomic diversity, several orders are well represented (eg Sapindales, Fagales, Pinales with 20-30% of species sampled). Others, especially the Asterids, are underrepresented with between 3.5% (Cornales) and 0.75% (Lamiales) species sampled. Monocots are also underrepresented compared to overall taxonomic diversity with 1% of monocots sampled. 
+
+``` {r dates}
+
+#get range of dates and locations by species
+aggregated_species_dates <- final_metadata %>% 
+  group_by(genus, specific_epithet, subspecific) %>% 
+  summarise(n_ind = n(), earliest_month = min(month_measured), latest_month = max(month_measured), month_range = paste0(min(month_measured), "-", max(month_measured)), duration_sampling = (max(month_measured)-min(month_measured)), n_locations = length(unique(BS.site_id)), across(c(36:84), max)) %>% #, n_species = n(unique(species))
+  arrange(desc(duration_sampling))
+
+duration3months <- aggregated_species_dates[which(aggregated_species_dates$duration_sampling > 2),c(1:2,7:8)]
+
+duration2months <- aggregated_species_dates[which(aggregated_species_dates$duration_sampling > 1),c(1:2,7:8)]
+
+duration3months
+duration2months
+
+#get samples of species with specific durations
+time_samples <- final_metadata[which(final_metadata$genus %in% duration2months$genus & final_metadata$specific_epithet %in% duration2months$specific_epithet),]
+
+#plot distribution of samples
+
+time_to_plot <- time_samples[,c(2,28,29,32,31,33:38,8)]
+
+#use date measured (not sampled)
+time_to_plot[which(time_to_plot$day_measured != time_to_plot$day_sampled),]
+
+time_to_plot$month_day <- paste0(time_to_plot$month_measured, "-", time_to_plot$day_measured)
+
+time_to_plot$species_name <- paste0(time_to_plot$genus, " ", time_to_plot$specific_epithet)
+
+time_to_plot$day_of_year <- yday(time_to_plot$LS.date_measured)
+
+#plot it
+ggplot(time_to_plot)+
+  geom_point(aes(x = day_of_year, y = species_name))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#jpeg("./figures/time_sampling.jpg")
+ggplot(time_to_plot)+
+  geom_point(aes(x = as.factor(day_measured), y = species_name))+
+  facet_wrap(vars(month_measured), scales = "free_x")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+saveRDS(time_to_plot, "./data/tidy/time_to_plot.rds")
+
+```
+
+There are 10 species that were sampled over a three month period or longer. There are 25 species that were sampled over a two month period or longer.
+
+Now, I'll match the spectral data to the updated metadata file (including removing the bad samples above and updating the scientific names).
+
+```{r match spectral to metadata}
+
+#combine metadata from spectral data and from metadata files
+
+#make spectral object into dataframe for manipulation
+spec_as_df <- as.data.frame(spectral_data, fix_names = "none", metadata = TRUE)
+
+#trim spectra to just those samples in cleaned metadata
+spectra_trimmed  <- spec_as_df[which(spec_as_df$sample_id %in% final_metadata$LS.sample_id),]
+
+#add spectra to metadata itself
+merged_meta_spectra <- merge(final_metadata, spectra_trimmed, by.x = "LS.sample_id", by.y = "sample_id")
+nrow(merged_meta_spectra)
+
+#there are some duplicate spectra for the same sample numbers - check this out
+nrow(final_metadata) #2046
+nrow(spectra_trimmed) #2050
+length(unique(spectra_trimmed$sample_id)) #2046
+nrow(spec_as_df) #2255
+
+dup_spectra <- merged_meta_spectra$LS.sample_id[which(duplicated(merged_meta_spectra$LS.sample_id) == TRUE)]
+
+#spectra numbers and sample numbers are duplicated but the spectra values are different - why?
+merged_meta_spectra[which(merged_meta_spectra$LS.sample_id %in% dup_spectra),c(1:5,7,8,13,16,19,20,27,88,91:95)]
+
+#add column for specie names in right format
+merged_meta_spectra <- merged_meta_spectra %>% 
+  unite(species_names, genus, specific_epithet, subspecific, sep = "_", na.rm = TRUE)
+  
+#make spectra back into spectral object
+trimmed_as_spectra <- as_spectra(spectra_trimmed, name_idx = 1, meta_idxs = c(2:4))
+
+
+#write spectral object as rds (trimmed simple spectra) and dataframe of spectra merged with metadata as csv
+
+saveRDS(trimmed_as_spectra, "./data/tidy/trimmed_spectra_by_meta.rds")
+write.csv(merged_meta_spectra, "./data/tidy/merged_meta_spectra_trimmed.csv", row.names = FALSE)
+
+
+#get list of all species for phylogeny
+species_all <- aggregated_species_data %>% 
+  unite(species_names, genus, specific_epithet, subspecific, sep = "_", na.rm = TRUE) %>% 
+  select(species_names)
+
+write.csv(species_all, "./data/tidy/species_names_for_phylo.csv", row.names = FALSE)
+
+
+spectral_data
+spec_as_df$sample_name[which(spec_as_df$sample_id == 42591114)]
+
+spec_as_df[which(spec_as_df$sample_id == 42591114 |spec_as_df$sample_id == 42594368 |spec_as_df$sample_id == 42594718),]#42594368    42594718 
+
+final_metadata[which(final_metadata$LS.sample_id == 42591114 |final_metadata$LS.sample_id == 42594368 |final_metadata$LS.sample_id == 42594718),]
+
+
+```
+
+I need to figure out why those eight (four numbers) spectra are duplicated.
+
