@@ -57,8 +57,11 @@ jpeg("./output/PCAs/ouwie/aov_pvalues_pcas.jpg", width = 12, height = 8, units =
 ggplot(aovs_univariate, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
-  geom_jitter(color = "black")+
-  labs(y = "p-value", x = "PC Axis")+
+  # geom_jitter(color = "black")+
+  # labs(y = "p-value", x = "PC Axis")+
+  geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black"))) +
+  scale_color_identity()+
+  labs(y = "p-value", x = "PC Axis", title = "Non-phylogenetic AOV using lm")+
   geom_hline(aes(yintercept = 0.05), colour = "red")+
   #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
   #scale_fill_discrete(name = "Model")+
@@ -130,4 +133,5 @@ ggplot(long_aics[which(long_aics$PC_axis == 1),], aes(x = as.factor(name), y = r
   #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
   #scale_fill_discrete(name = "Model")+
   theme_bw()
+
 

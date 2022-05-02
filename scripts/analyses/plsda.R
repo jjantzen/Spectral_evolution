@@ -231,7 +231,7 @@ dev.off()
 #_#_#_#_#_#_#_#_#_#_#_#
 
 ## things and dummies
-ncomp<-20
+ncomp<-19
 nsims <-100
 mods<-list()
 train_fit<-list()
@@ -282,9 +282,9 @@ for (nsim in seq(nsims)){
 }
 
 
-saveRDS(train_fit, "./analysis/plsda/PLSDA_fast_train_T6_20comps.rds")
-saveRDS(probis, "./analysis/plsda/PLSDA_fast_T6_probis_20comps.rds")
-saveRDS(confus, "./analysis/plsda/PLSDA_fast_T6_confus_20comps.rds")
+saveRDS(train_fit, "./analysis/plsda/PLSDA_fast_train_T6_19comps.rds")
+saveRDS(probis, "./analysis/plsda/PLSDA_fast_T6_probis_19comps.rds")
+saveRDS(confus, "./analysis/plsda/PLSDA_fast_T6_confus_19comps.rds")
 
 # #read files
 # train_fit <- readRDS("./analysis/plsda/PLSDA_fast_train_T6_31comps.rds")
@@ -369,7 +369,7 @@ tabs_perc <- read.csv("./analysis/plsda/PLSDA_all_confuperc_31comps.csv", row.na
 #make plot
 jpeg("./output/plsda_confusion_matrix_AM_EM_round2.jpg", height = 5, width = 5, res = 500, units = "in")
 par(fig=c(0,1,0,1), new=F)
-corrplot::corrplot(tabs_perc, is.corr = F, col = coul, tl.col = 1, cl.pos = "n",
+corrplot::corrplot(tabs_perc, is.corr = T, col = c(coul, coul), tl.col = 1, cl.pos = "n",
                    tl.offset =1, tl.cex = 0.9, tl.srt = 70,
                    addCoef.col ='black', number.font = 1, number.cex = 0.9, addCoefasPercent = T, na.label = " ") 
 

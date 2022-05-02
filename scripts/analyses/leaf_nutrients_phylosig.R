@@ -1,8 +1,13 @@
 #leaf nutrients phylogenetic signal
 
+summarized_best_models_100trees_mycdataset
+colnames(summarized_best_models_100trees_mycdataset)
+best_models_myc_models_92sp
+
 library(mvMORPH)
 library(phytools)
 library(dplyr)
+library(spectrolab)
 
 #read data
 spectral_data <- readRDS("./data/for_analysis/final_spectra_matched_trees.rds")
@@ -69,6 +74,22 @@ physig_iterations <- function(trait_data, trees_object, name){ #name is name of 
   write.csv(df_output, paste0("./analysis/trait_phylosig/", name, "_K_100trees_leaf_nutrients.csv"))
   return(df_output)
 }
+
+nrow(trait_means_keep[which(is.nan(trait_means_keep$P_mass) == TRUE),])
+
+unique(trait_data$species_names[which(!is.na(trait_data$P_area))]) #24 species have phosphorus in original dataset
+
+#missing Nmass and Narea from Pinus rigida
+
+#missing Pmass and Parea from 73 species
+
+#missing lignin and cellulose from Alnus incana
+
+trait_means_keep[which(is.nan(trait_means_keep$P_mass) == TRUE),c(1, 27, 68)]
+
+colnames(trait_means_keep)
+
+
 
 #save output
 SLA <- setNames(trait_means_keep$SLA, trait_means_keep$species_names)
