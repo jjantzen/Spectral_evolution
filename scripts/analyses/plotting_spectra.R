@@ -21,9 +21,11 @@ AM_mean <- mean(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),])
 
 EM_mean <- mean(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),])
 
-colours_touse <- c("#008837", "#E69F00", "#7b3294")
+#colours_touse <- c("#008837", "#E69F00", "#7b3294")
+colours_touse <- c("darkorange", "blue", "#7b3294")
 
-colours_trans <- c(make.transparent("#008837", 0.15), make.transparent("#E69F00", 0.15), make.transparent("#7b3294", 0.2))
+#colours_trans <- c(make.transparent("#008837", 0.15), make.transparent("#E69F00", 0.15), make.transparent("#7b3294", 0.2))
+colours_trans <- c(make.transparent("orange", 0.15), make.transparent("blue", 0.1), make.transparent("#7b3294", 0.2))
 
 #colours_trans <- c(make.transparent("#008837", 0.3), make.transparent("#E69F00", 0.3), make.transparent("#7b3294", 0.1))
 
@@ -39,12 +41,13 @@ plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob 
 legend(2000, 0.6, legend=c("AM", "EM"), fill=c(rgb(1,0,0,0.25), rgb(0,0,1,0.25)), cex=2)#lty=1,col
 dev.off()
 
-jpeg("./output/spectra_by_myc.jpg", res = 600, width = 10, height = 10, units = "in")
-plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], border = FALSE, main = "Spectra by mycorrhizal association (mean with 95% quantile)", xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association (80% quantile)"
-plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[3], border = FALSE, add = TRUE)
+jpeg("./output/spectra_by_myc_orange.jpg", res = 600, width = 6, height = 6, units = "in")
+#pdf("./output/spectra_by_myc_orange.pdf", width = 6, height = 6)
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association (80% quantile)"
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
 plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
-plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[3], add = TRUE)
-legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,3)]), cex=2)#lty=1,col
+plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,2)]), cex=1)#lty=1,col
 dev.off()
 
 #plot actual spectra by habit

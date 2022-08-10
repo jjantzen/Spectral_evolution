@@ -1,9 +1,9 @@
 #read output from myc models and summarize parameters
 library(dplyr)
-library(phytools)
+library(mvMORPH)
 
 #for file in folder
-files <- list.files("./analysis/lp_models/parameters/", pattern=NULL, all.files=FALSE, full.names=TRUE)
+files <- list.files("./analysis/myc_models/92sp_myc/manovas/", pattern="*manova_summary*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
 
 for (i in 1:length(files)){
   #read file
@@ -16,14 +16,29 @@ for (i in 1:length(files)){
   }
 }
 
+example <- readRDS(files[1])
+example
+
 #sort output dataframe
 output_sorted <- output[order(output$iteration),]
 
 #save output
-saveRDS(output_sorted, "./analysis/lp_models/summarized_parameters_lp_models.rds")
+saveRDS(output_sorted, "./analysis/myc_models/92sp_myc/summarized_manovas_myc_models_92sp_binary.rds")
 
-output_sorted <- readRDS("./analysis/lp_models/summarized_parameters_lp_models.rds")
+output_sorted <- readRDS("./analysis/myc_models/92sp_myc/summarized_manovas_myc_models_92sp_binary.rds")
 
+
+#get mean of pvalue 
+mean(output_sorted$pvalue)
+sd(output_sorted$pvalue)
+mean(output_sorted$test_stat)
+sd(output_sorted$test_stat)
+
+print(manova_output_iteration15_OU_model_)
+
+
+
+##################if needed#############
 #for each iteration, get best model (model for lowest GIC)
 
 best_models <- data.frame(matrix(nrow=100, ncol = 3))
@@ -34,7 +49,7 @@ class(best_models[,2]) <- "character"
 colnames(best_models)[3] <- "parameter"
 class(best_models[,3]) <- "numeric"
 
-for (i in 100:length(unique(output_sorted$iteration))){
+for (i in 1:length(unique(output_sorted$iteration))){
   data <- output_sorted[which(output_sorted$iteration == i),]
   best_model <- data$model[which(data$GIC == min(data$GIC))]
   parameter <- data$parameter[which(data$GIC == min(data$GIC))]
@@ -43,29 +58,21 @@ for (i in 100:length(unique(output_sorted$iteration))){
   best_models$parameter[i] <- parameter
 }
 
-#33, 58, 59 failed during model run
-saveRDS(best_models, "./analysis/lp_models/best_models_lp_models.rds")
-
-best_models <- readRDS("./analysis/lp_models/best_models_lp_models.rds")
+saveRDS(best_models, "./analysis/myc_models/best_models_myc_models.rds")
 
 #summarize by number of model
 summary <- best_models %>% 
-  dplyr::group_by(best_model) %>% 
-  dplyr::summarize(n = n(), parameter = mean(parameter))
+  group_by(best_model) %>% 
+  summarize(n = n(), parameter = mean(parameter))
 
-saveRDS(output_sorted, "./analysis/lp_models/summary_lp_models.rds")
-
-saveRDS(summary, "./analysis/lp_models/n_per_model_lp_models.rds")
-
-summary <- readRDS("./analysis/lp_models/n_per_model_lp_models.rds")
+saveRDS(output_sorted, "./analysis/myc_models/summary_myc_models.rds")
 
 
 #get stats for results table
 stats <- output_sorted %>% 
-  dplyr::group_by(model) %>% 
-  dplyr::summarize(mean_param = mean(parameter), sd2_param = sd(parameter), mean_GIC =  mean(GIC), sd2_GIC = sd(GIC))#, deltaGIC = (mean(GIC)-minGIC_EB))
+  group_by(model) %>% 
+  summarize(mean_param = mean(parameter), sd2_param = sd(parameter), mean_GIC =  mean(GIC), sd2_GIC = sd(GIC))#, deltaGIC = (mean(GIC)-minGIC_EB))
 
-stats <- readRDS("./analysis/lp_models/stats_lp_models.rds")
 
 #calculate phylogenetic halflife for each tree for the ou models
 best_models

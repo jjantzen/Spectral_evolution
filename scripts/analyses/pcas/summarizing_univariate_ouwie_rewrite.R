@@ -19,6 +19,13 @@ best_ouwie_models <- aics_ouwie %>%
 
 best_ouwie_models
 
+best_ouwie_models %>% 
+  dplyr::select(iteration, PC_axis, top_model) %>% 
+  dplyr::filter(PC_axis %in% c(1:3)) %>% 
+  dplyr::group_by(PC_axis, top_model) %>% 
+  dplyr::summarize(count = n())
+
+
 #plot the aic weights for each model for each pc axis (repeated iterations)
 long_aics <- pivot_longer(aics_ouwie, c(3:9))
 long_aics
@@ -53,15 +60,16 @@ dev.off()
 
 #plot anova results 
 
-jpeg("./output/PCAs/ouwie/aov_pvalues_pcas.jpg", width = 12, height = 8, units = "in", res = 600)
-ggplot(aovs_univariate, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
+jpeg("./output/PCAs/ouwie/aov_pvalues_pcas.jpg", width = 4, height = 4, units = "in", res = 600)
+pdf("./output/PCAs/ouwie/aov_pvalues_pcas.pdf", width = 4, height = 4)
+ggplot(aovs_univariate[which(aovs_univariate$PC_axis %in% c(1:6)),], aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
   # geom_jitter(color = "black")+
   # labs(y = "p-value", x = "PC Axis")+
-  geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black"))) +
+  geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black")), size = 0.75) +
   scale_color_identity()+
-  labs(y = "p-value", x = "PC Axis", title = "Non-phylogenetic AOV using lm")+
+  labs(y = "p-value", x = "PC Axis", title = "Non-phylogenetic ANOVA")+
   geom_hline(aes(yintercept = 0.05), colour = "red")+
   #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
   #scale_fill_discrete(name = "Model")+

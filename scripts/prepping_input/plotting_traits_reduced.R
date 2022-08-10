@@ -21,7 +21,7 @@ consensus_tree$tip.label[which(consensus_tree$tip.label == "'Acer saccharum subs
 
 plot(consensus_tree)
 
-myc_data <- readRDS("./data/for_analysis/myc_data_list_for_analysis.rds")
+myc_data <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
 #tips to drop 
 exclude <- consensus_tree$tip.label[-which(consensus_tree$tip.label %in%myc_data$species)]
@@ -52,7 +52,7 @@ Drought <- revalue(Drought, c("No"="Drought intolerant", "Yes"="Drought tolerant
 Drought <- relevel(Drought, "Drought tolerant")
 
 Woody <- revalue(Woody, c("0"="Non-woody", "1"="Woody"))
-Woody <- relevel(Woody, "Woody")
+Woody <- relevel(Woody, "Non-woody")
 
 Fine_soil <- revalue(Fine_soil, c("No"="Not adapted to fine soil", "Yes"="Adapted to fine soil"))
 Fine_soil <- relevel(Fine_soil, "Adapted to fine soil")
@@ -141,38 +141,127 @@ Myc <- setNames(as.factor(myc_data$myc), myc_data$species)
 Myc
 # Drought <- revalue(Drought, c("No"="Drought intolerant", "Yes"="Drought tolerant"))
 # Drought <- relevel(Drought, "Drought tolerant")
+#make it orange and blue
+colours_touse <- c("orange", "blue", "#7b3294")
+colours_touse_3 <- c("#008837", "#a6dba0", "#7b3294")
 
+shapes_to_use <- c(21, 22, 23)
 
-jpeg("./output/trait_plots/Myc_consensus.jpg", height = 10, width = 6, res = 500, units = "in")
-cols<-setNames(colours_touse[c(1,3)],levels(Myc))
+jpeg("./output/trait_plots/Myc_consensus_orange.jpg", height = 10, width = 6, res = 500, units = "in")
+cols<-setNames(colours_touse[c(1,2)],levels(Myc)) #or 1,3
+shaps <- setNames(shapes_to_use[c(1,2,3)], levels(Myc))
 plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.6)
 obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
 points(obj$xx[1:Ntip(myc_tree)],
-       obj$yy[1:Ntip(myc_tree)],pch=21,cex=1.2,
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[Myc[myc_tree$tip.label]],cex=1.2,
        bg=cols[Myc[myc_tree$tip.label]])
-legend("bottomleft", levels(Myc), pch=21, pt.bg=colours_touse[c(1,3)], pt.cex=2)
+legend("bottomleft", levels(Myc), pch=shaps, pt.bg=colours_touse[c(1,2)], pt.cex=2) #or 1,3
 dev.off()
 
 GF <- setNames(as.factor(myc_data$gf), myc_data$species)
 
 jpeg("./output/trait_plots/GF_myc_consensus.jpg", height = 10, width = 6, res = 500, units = "in")
-cols<-setNames(colours_touse[c(1,2,3)],levels(GF))
+cols<-setNames(colours_touse_3[c(3,2,1)],levels(GF))
+shaps <- setNames(shapes_to_use[c(1,2,3)], levels(GF))
 plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.6)
 obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
 points(obj$xx[1:Ntip(myc_tree)],
-       obj$yy[1:Ntip(myc_tree)],pch=21,cex=1.2,
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[GF[myc_tree$tip.label]],cex=1.2,
        bg=cols[GF[myc_tree$tip.label]])
-legend("bottomleft", levels(GF), pch=21, pt.bg=colours_touse[c(1,2,3)], pt.cex=2)
+legend("bottomleft", levels(GF), pch=shaps, pt.bg=colours_touse_3[c(3,2,1)], pt.cex=2)
 dev.off()
 
 LP <- setNames(as.factor(myc_data$lp), myc_data$species)
+LP <- revalue(LP, c("deciduous"="Deciduous", "evergreen"="Evergreen"))
 
 jpeg("./output/trait_plots/LP_myc_consensus.jpg", height = 10, width = 6, res = 500, units = "in")
-cols<-setNames(colours_touse[c(1,3)],levels(LP))
+cols<-setNames(colours_touse_3[c(3,1)],levels(LP))
+shaps <- setNames(shapes_to_use[c(1,2)], levels(LP))
 plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.6)
 obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
 points(obj$xx[1:Ntip(myc_tree)],
-       obj$yy[1:Ntip(myc_tree)],pch=21,cex=1.2,
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[LP[myc_tree$tip.label]],cex=1.2,
        bg=cols[LP[myc_tree$tip.label]])
-legend("bottomleft", levels(LP), pch=21, pt.bg=colours_touse[c(1,3)], pt.cex=2)
+legend("bottomleft", levels(LP), pch=shaps, pt.bg=colours_touse_3[c(3,1)], pt.cex=2)
 dev.off()
+
+
+Woody_myc <- Woody[which(names(Woody) %in% names(Myc))]
+length(Woody_myc)
+
+
+jpeg("./output/trait_plots/Woody_myc_consensus.jpg", height = 10, width = 6, res = 500, units = "in")
+cols<-setNames(colours_touse_3[c(1,3)],levels(Woody_myc))
+shaps <- setNames(shapes_to_use[c(1,2)], levels(Woody_myc))
+plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.6)
+obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+points(obj$xx[1:Ntip(myc_tree)],
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[Woody_myc[myc_tree$tip.label]],cex=1.2,
+       bg=cols[Woody_myc[myc_tree$tip.label]])
+legend("bottomleft", levels(Woody_myc), pch=shaps, pt.bg=colours_touse_3[c(1,3)], pt.cex=2)
+dev.off()
+
+##########
+
+Myc <- revalue(Myc, c("AM"="Arbuscular mycorrhizal", "EM"="Ectomycorrhizal"))
+colours_touse_2 <- c("green4", "salmon4")
+
+
+#plot into one file
+jpeg("./output/trait_plots/4_predictors_distribution_plot.jpg", height = 10, width = 4, units = "in", res = 600)
+
+#make pdf for publication
+#pdf("./output/trait_plots/4_predictors_distribution_plot.pdf", height = 10, width = 4)
+
+
+#par(mfrow=c(1,4))
+#layout(matrix(c(1,2,3,4), nrow = 2, ncol = 2, byrow = TRUE))
+
+#woodiness
+#cols<-setNames(colours_touse_3[c(3,1)],levels(Woody_myc))
+#shaps <- setNames(shapes_to_use[c(1,2)], levels(Woody_myc))
+plotTree(myc_tree,ftype="i",offset=2,fsize=0.45)
+#obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+#points(obj$xx[1:Ntip(myc_tree)],
+#       obj$yy[1:Ntip(myc_tree)],pch=shaps[Woody_myc[myc_tree$tip.label]],cex=1,
+#       bg=cols[Woody_myc[myc_tree$tip.label]])
+#legend(-5,25, levels(Woody_myc), pch=shaps, pt.bg=colours_touse_3[c(3,1)], pt.cex=2, title = "Woodiness\n", bty = "n", cex = 0.5)
+#legend(-5,10, levels(Woody_myc), pch=shaps, pt.bg=colours_touse_3[c(3,1)], pt.cex=2, title = "Woodiness\n", bty = "n")
+
+#GF
+cols<-setNames(colours_touse_3[c(3,2,1)],levels(GF))
+shaps <- setNames(shapes_to_use[c(1,2,3)], levels(GF))
+#plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.45)
+obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+points(obj$xx[1:Ntip(myc_tree)],
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[GF[myc_tree$tip.label]],cex=1,
+       bg=cols[GF[myc_tree$tip.label]])
+legend(-5,25, levels(GF), pch=shaps, pt.bg=colours_touse_3[c(3,2,1)], pt.cex=1.5, title = "Growth\nForm", bty = "n", cex = 0.75, y.intersp = 1, title.adj = 0)
+#legend(75,10, levels(GF), pch=shaps, pt.bg=colours_touse_3[c(3,2,1)], pt.cex=2, title = "Growth\nForm", bty = "n")
+
+#LP
+cols<-setNames(colours_touse_2[c(2,1)],levels(LP))
+shaps <- setNames(shapes_to_use[c(1,2)], levels(LP))
+#plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.45)
+obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+points(obj$xx[1:Ntip(myc_tree)]+20,
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[LP[myc_tree$tip.label]],cex=1,
+       bg=cols[LP[myc_tree$tip.label]])
+legend(-5,15, levels(LP), pch=shaps, pt.bg=colours_touse_2[c(2,1)], pt.cex=1.5, title = "Leaf\nPersistence", bty = "n", cex = 0.75, y.intersp = 1, title.adj = 0)
+#legend(130,10, levels(LP), pch=shaps, pt.bg=colours_touse_3[c(3,1)], pt.cex=2, title = "Leaf\nPersistence", bty = "n")
+
+#myc
+cols<-setNames(colours_touse[c(1,2)],levels(Myc)) #or 1,3
+shaps <- setNames(shapes_to_use[c(1,2,3)], levels(Myc))
+#plotTree(myc_tree,ftype="i",offset=0.6,fsize=0.45)
+obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
+points(obj$xx[1:Ntip(myc_tree)]+40,
+       obj$yy[1:Ntip(myc_tree)],pch=shaps[Myc[myc_tree$tip.label]],cex=1,
+       bg=cols[Myc[myc_tree$tip.label]])
+legend(-5,7, levels(Myc), pch=shaps, pt.bg=colours_touse[c(1,2)], pt.cex=1.5, title = "Mycorrhizal\nType", bty = "n", cex = 0.75, y.intersp = 1, title.adj = 0, xjust = 0) #or 1,3
+#legend(200,10, levels(Myc), pch=shaps, pt.bg=colours_touse[c(1,2)], pt.cex=2, title = "Mycorrhizal\nType", bty = "n") #or 1,3
+
+legend(355,95, legend = c("GF", "LP", "MT"), bty = "n", horiz = TRUE, text.width=c(0,1.5,0.5), cex = 0.6, x.intersp = 0.7)
+
+dev.off()
+

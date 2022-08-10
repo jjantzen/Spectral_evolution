@@ -7,14 +7,21 @@ library(phytools)
 #calculate Kmulti using physignal function - for procrustes shape variables
 
 #read spectra
-spectra_matrix <- readRDS("./data/for_analysis/spectra_not_reordered_to_tree.rds")
+#spectra_matrix <- readRDS("./data/for_analysis/spectra_not_reordered_to_tree.rds")
+
+spectra_matrix <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
 str(spectra_matrix)
+
+spectra_matrix <- spectra_matrix$spectra
+
 
 #data_spectra <- list(trait=spectra_matrix)
 
 #read trees
-new_trees <- readRDS("./data/for_analysis/final_trees_matched_spectra.rds")
+#new_trees <- readRDS("./data/for_analysis/final_trees_matched_spectra.rds")
+
+new_trees <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
 
 #rescaled_trees <- readRDS("./data/tidy/rescaled_trees_matched_spectra.rds")
 
@@ -46,7 +53,7 @@ for (i in 1:length(new_trees)){
 #extract K and pvalue from output lists
 df_output2 <- df_output %>% add_row(iteration = NA, K = mean(df_output$K[c(1:100)]), pvalue =  mean(df_output$pvalue[1:100]))
 
-df_output2 <- df_output2 %>% add_row(iteration = NA, K = max(df_output2$K[c(1:100)]), pvalue =  max(df_output2$pvalue[1:100]))
+df_output2 <- df_output2 %>% add_row(iteration = NA, K = sd(df_output2$K[c(1:100)]), pvalue =  sd(df_output2$pvalue[1:100]))
 
 # df_output$iteration[101] <- "mean"
 # df_output$K[101] <-  mean(df_output$K[c(1:100)]) #0.1130031
@@ -63,8 +70,9 @@ df_output2 <- df_output2 %>% add_row(iteration = NA, K = max(df_output2$K[c(1:10
 # max(df_output$pvalue) #max 0.029 so all significant
 
 #save output
-write.csv(df_output2, "./analysis/phylosig/Kmulti_100trees_final.csv")
+write.csv(df_output2, "./analysis/phylosig/Kmulti_100trees_final_92sp.csv")
 
+df_output2 <- read.csv("./analysis/phylosig/Kmulti_100trees_final_92sp.csv")
 
 #prune phylogeny to clade and family and calculate phylosignal for each across all 100 trees
 tree_names <- new_trees[[1]]$tip.label
@@ -76,6 +84,9 @@ colnames(data_set)
 
 taxonomy <- data_set[,c(1,6,7,8,9)] #fill in right columns - species names, order and subclass and superorder and family
 taxonomy
+
+
+taxonomy <- taxonomy[which(taxonomy$Species %in% tree_names),]
 
 example_tree <- new_trees[[99]]
 
@@ -220,9 +231,9 @@ for (i in 1:length(new_trees)){
 #need to fix being able to call the specific name to match
 #error when trying to run function but works on its own
 
-physig_iterations <- function(spectra_matrix, new_trees, name){#, taxonomy){ #exclude taxonomy for spectral regions
+physig_iterations <- function(spectra_matrix, new_trees, name, taxonomy){ #exclude taxonomy for spectral regions
   #exclude trimming for spectral regions
-  #spectra_matrix_sm <- spectra_matrix[which(dimnames(spectra_matrix)[[1]] %in% taxonomy$Species[which(taxonomy$Subclass == name)]),] #modify this according to clade level
+  spectra_matrix_sm <- spectra_matrix[which(dimnames(spectra_matrix)[[1]] %in% taxonomy$Species[which(taxonomy$Subclass == name)]),] #modify this according to clade level
   #str(spectra_matrix_sm)
   str(new_trees[[2]])
   df_output <- data.frame(matrix(nrow=102, ncol = 3))
@@ -236,7 +247,7 @@ physig_iterations <- function(spectra_matrix, new_trees, name){#, taxonomy){ #ex
   
   #do physignal calc
   for (i in 1:length(new_trees)){
-    sig <- physignal(spectra_matrix, new_trees[[i]], iter = 999, seed = NULL, print.progress = TRUE) 
+    sig <- physignal(spectra_matrix_sm, new_trees[[i]], iter = 999, seed = NULL, print.progress = TRUE) 
     df_output$iteration[i] <- i
     df_output$K[i] <- sig$phy.signal
     df_output$pvalue[i] <- sig$pvalue
@@ -246,11 +257,11 @@ physig_iterations <- function(spectra_matrix, new_trees, name){#, taxonomy){ #ex
   df_output$K[101] <-  mean(df_output$K[c(1:100)])
   df_output$pvalue[101] <-  mean(df_output$pvalue[1:100])
   df_output$iteration[102] <- NA
-  df_output$K[102] <-  max(df_output$K[c(1:100)])
-  df_output$pvalue[102] <-  max(df_output$pvalue[1:100])
+  df_output$K[102] <-  sd(df_output$K[c(1:100)])
+  df_output$pvalue[102] <-  sd(df_output$pvalue[1:100])
   
-  saveRDS(df_output, paste0("./analysis/phylosig/Kmulti_100trees_" , name, "_clade.rds"))
-  write.csv(df_output, paste0("./analysis/phylosig/Kmulti_100trees_" , name, "_clade.csv"))
+  saveRDS(df_output, paste0("./analysis/phylosig/Kmulti_100trees_" , name, "_clade_92sp.rds"))
+  write.csv(df_output, paste0("./analysis/phylosig/Kmulti_100trees_" , name, "_clade_92sp.csv"))
 }
 
 
@@ -274,7 +285,7 @@ fagales_K <- physig_iterations(spectra_matrix, fagales_clade, "Fagales", taxonom
 poales_K <- physig_iterations(spectra_matrix, poales_clade, "Poales", taxonomy)
 #asparagales_K <- physig_iterations(spectra_matrix, asparagales_clade, "Asparagales", taxonomy) #too few taxa
 rosales_K <- physig_iterations(spectra_matrix, rosales_clade, "Rosales", taxonomy)
-ericales_K <- physig_iterations(spectra_matrix, ericales_clade, "Ericales", taxonomy)
+#ericales_K <- physig_iterations(spectra_matrix, ericales_clade, "Ericales", taxonomy)
 asterales_K <- physig_iterations(spectra_matrix, asterales_clade, "Asterales", taxonomy)
 #caryophyllales_K <- physig_iterations(spectra_matrix, caryophyllales_clade, "caryophyllales")
 fabales_K <- physig_iterations(spectra_matrix, fabales_clade, "Fabales", taxonomy)

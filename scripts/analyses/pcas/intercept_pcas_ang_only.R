@@ -10,13 +10,13 @@ source("./scripts/plot_phylo_pca_edited_function.R")
 
 
 #read in data
-data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
-tree_myc <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
+data_spectra <- readRDS("./data/for_analysis/ang_only_data_for_myc.rds")
+tree_myc <- readRDS("./data/for_analysis/ang_only_trees_for_myc.rds")
 
 #Read in model results
 
 #for file in folder
-files <- list.files("./analysis/intercept_models/myc_dataset/models/", pattern=NULL, all.files=FALSE, full.names=TRUE)
+files <- list.files("./analysis/intercept_models/myc_dataset/ang_only/models/", pattern=NULL, all.files=FALSE, full.names=TRUE)
 
 #choose which models to use 
 best_models <- readRDS("./analysis/intercept_models/myc_dataset/summarized_best_models_100trees_mycdataset.rds")
@@ -26,6 +26,7 @@ best_models <- best_models[,c(1,17)]
 #subset files to match best models only
 keep_files <- c()
 
+#did this on cluster
 name_formula <- gsub("_BM_iteration1.rds", "", files[1])
 
 for (i in 1:nrow(best_models)){
@@ -45,7 +46,7 @@ for (i in 1:length(keep_files)){
 model_list[[i]]
 i
 #saveRDS(model_list, "./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
-model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
+model_list <- readRDS("./analysis/intercept_models/myc_dataset/ang_only/best_intercept_models_ang_only.rds")
 
 #Map trait to trees - make simmap tree for predictor
 myc_named <- setNames(data_spectra$myc, rownames(data_spectra$spectra))
@@ -63,6 +64,13 @@ for (i in 1:length(simmap_tree)){
 #saveRDS(simmap_tree, "./analysis/pca_analysis/myc_simmap_trees.rds")
 simmap_tree <- readRDS("./analysis/pca_analysis/myc_simmap_trees.rds")
 
+
+#drop tips not in dataset
+tree_drops <- simmap_tree[[1]]$tip.label[-which(simmap_tree[[1]]$tip.label %in% data_spectra$species)]
+
+simmap_tree <- lapply(simmap_tree,drop.tip,tip=tree_drops)
+
+
 #Do PCA for each of 100 models
 
 for (i in 1:length(model_list)){ #test with 1 first
@@ -73,7 +81,7 @@ for (i in 1:length(model_list)){ #test with 1 first
   var_explained <- 100 * pca_best_model$values / sum(pca_best_model$values)
 
   #create scree plot
-  jpeg(paste0("./output/PCAs/iterations/myc_scree_plot_iteration", i, ".jpg"), res = 300, width = 10, height = 10, units = "in")
+  jpeg(paste0("./output/PCAs/iterations/myc_scree_plot_ang_only_iteration_", i, ".jpg"), res = 300, width = 10, height = 10, units = "in")
   q <- qplot(x = c(1:20), y = var_explained[c(1:20)]) +
     geom_line() +
     xlab("Principal Component") +
@@ -97,7 +105,7 @@ for (i in 1:length(model_list)){ #test with 1 first
   pc_labs <- paste("PC", c(1:9))
   names(pc_labs) <- c(1:9)
 
-  jpeg(paste0("./output/PCAs/iterations/myc_loadings_top10_iteration", i, ".jpg"), res = 400, width = 15, height = 15, units = "in")
+  jpeg(paste0("./output/PCAs/iterations/myc_loadings_top10_ang_only_iteration", i, ".jpg"), res = 400, width = 15, height = 15, units = "in")
   v <- ggplot(vectors_for_plotting[which(vectors_for_plotting$pc_axis %in% c(1:9)),], aes(x=wavelength,y=value)) +
     geom_bar(stat = "identity")+
     facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
@@ -113,17 +121,17 @@ for (i in 1:length(model_list)){ #test with 1 first
   col.group <- gsub("AM", "orange", col.group)
   col.group <- gsub("EM", "blue", col.group)
 
-  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc1_pc2_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
+  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc1_pc2_ang_only_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
   pca12 <- plot_pca_phylo(pca_best_model, model_list[[i]], axes = c(1,2), col = col.group, groups = data_spectra$myc, labels = rownames(data_spectra$spectra))
   print(pca12)
   dev.off()
 
-  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc3_pc4_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
+  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc3_pc4_ang_only_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
   pca34 <- plot_pca_phylo(pca_best_model, model_list[[i]], axes = c(3,4), col = col.group, groups = data_spectra$myc, labels = rownames(data_spectra$spectra))
   print(pca34)
   dev.off()
 
-  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc5_pc6_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
+  jpeg(paste0("./output/PCAs/iterations/phylo_pca_pc5_pc6_ang_only_iteration", i, ".jpg"), res = 600, width = 10, height = 10, units = "in")
   pca56 <- plot_pca_phylo(pca_best_model, model_list[[i]], axes = c(5,6), col = col.group, groups = data_spectra$myc, labels = rownames(data_spectra$spectra))
   print(pca56)
   dev.off()
@@ -148,21 +156,21 @@ for (i in 1:length(model_list)){ #test with 1 first
   colnames(output_aics_per)[9] <- "OUMVA"
   class(output_aics_per[,9]) <- "numeric"
 
-  output_aov_per <- data.frame(matrix(nrow=10, ncol = 7))
-  colnames(output_aov_per)[1] <- "iteration"
-  class(output_aov_per[,1]) <- "numeric"
-  colnames(output_aov_per)[2] <- "PC_axis"
-  class(output_aov_per[,2]) <- "numeric"
-  colnames(output_aov_per)[3] <- "F_stat"
-  class(output_aov_per[,3]) <- "numeric"
-  colnames(output_aov_per)[4] <- "p_value"
-  class(output_aov_per[,4]) <- "numeric"
-  colnames(output_aov_per)[5] <- "df"
-  class(output_aov_per[,5]) <- "numeric"
-  colnames(output_aov_per)[6] <- "sum_sq"
-  class(output_aov_per[,6]) <- "numeric"
-  colnames(output_aov_per)[7] <- "mean_sq"
-  class(output_aov_per[,7]) <- "numeric"
+  # output_aov_per <- data.frame(matrix(nrow=10, ncol = 7))
+  # colnames(output_aov_per)[1] <- "iteration"
+  # class(output_aov_per[,1]) <- "numeric"
+  # colnames(output_aov_per)[2] <- "PC_axis"
+  # class(output_aov_per[,2]) <- "numeric"
+  # colnames(output_aov_per)[3] <- "F_stat"
+  # class(output_aov_per[,3]) <- "numeric"
+  # colnames(output_aov_per)[4] <- "p_value"
+  # class(output_aov_per[,4]) <- "numeric"
+  # colnames(output_aov_per)[5] <- "df"
+  # class(output_aov_per[,5]) <- "numeric"
+  # colnames(output_aov_per)[6] <- "sum_sq"
+  # class(output_aov_per[,6]) <- "numeric"
+  # colnames(output_aov_per)[7] <- "mean_sq"
+  # class(output_aov_per[,7]) <- "numeric"
 
 
   #run ouwie models
@@ -193,28 +201,28 @@ for (i in 1:length(model_list)){ #test with 1 first
     output_aics_per$OUMA[j] <- weights[6]
     output_aics_per$OUMVA[j] <- weights[7]
 
-    #figure out how to save aov results
-    pc_aov <- aov(X ~ myc, data = data)
-    summary_aov <- summary(pc_aov)
-
-    output_aov_per$iteration[j] <- i
-    output_aov_per$PC_axis[j] <- j
-    output_aov_per$F_stat[j] <- summary_aov[[1]]$`F value`[1]
-    output_aov_per$p_value[j] <- summary_aov[[1]]$`Pr(>F)`[1]
-    output_aov_per$df[j] <- summary_aov[[1]]$Df
-    output_aov_per$sum_sq[j] <- summary_aov[[1]]$`Sum Sq`
-    output_aov_per$mean_sq[j] <- summary_aov[[1]]$`Mean Sq`
-    
+    # #figure out how to save aov results
+    # pc_aov <- aov(X ~ myc, data = data)
+    # summary_aov <- summary(pc_aov)
+    # 
+    # output_aov_per$iteration[j] <- i
+    # output_aov_per$PC_axis[j] <- j
+    # output_aov_per$F_stat[j] <- summary_aov[[1]]$`F value`[1]
+    # output_aov_per$p_value[j] <- summary_aov[[1]]$`Pr(>F)`[1]
+    # output_aov_per$df[j] <- summary_aov[[1]]$Df
+    # output_aov_per$sum_sq[j] <- summary_aov[[1]]$`Sum Sq`
+    # output_aov_per$mean_sq[j] <- summary_aov[[1]]$`Mean Sq`
+    # 
     
   }
   print(i)
   if (i == 1){
     output_aics <- output_aics_per
-    output_aovs <- output_aov_per
+   # output_aovs <- output_aov_per
 
   } else {
     output_aics <- rbind(output_aics, output_aics_per)
-    output_aovs <- rbind(output_aovs, output_aov_per)
+   # output_aovs <- rbind(output_aovs, output_aov_per)
   }
 }
 
@@ -311,7 +319,7 @@ for (i in 1:length(model_list)){ #test with 1 first
   class(output_gls_best[,6]) <- "numeric"
   
   #run models
-  for (j in 1:10){
+  for (j in 1:6){ #10
     #get data
     data <- data.frame(species=rownames(pca_best_model$scores),myc=myc_named, X=as.numeric(pca_best_model$scores[,j]))
   
@@ -363,44 +371,44 @@ for (i in 1:length(model_list)){ #test with 1 first
     
     
     ###plot model assessment for each pc for each iteration
-    jpeg(paste0("./output/PCAs/iterations/model_assessment_pc", j, "_iteration", i, "_summary_phylolm", model_list[[i]]$model, ".jpg"), width = 8, height = 6, res = 500, units = "in")
-    par(mfrow=c(2,2))
+    #jpeg(paste0("./output/PCAs/iterations/model_assessment_pc", j, "_iteration", i, "_summary_phylolm", model_list[[i]]$model, ".jpg"), width = 8, height = 6, res = 500, units = "in")
+    #par(mfrow=c(2,2))
     
     #plot residuals vs independent variable
-    print(plot(data$X, phy_gls_lam$residuals, ylab = "Residuals", xlab = "Variable"))
+    #print(plot(data$X, phy_gls_lam$residuals, ylab = "Residuals", xlab = "Variable"))
     
     #Distribution of residuals (normal)
-    qplot <- qqnorm(phy_gls_lam$residuals)
-    print(qplot)
-    print(qqline(phy_gls_lam$residuals, col = "red"))
+    #qplot <- qqnorm(phy_gls_lam$residuals)
+    #print(qplot)
+    #print(qqline(phy_gls_lam$residuals, col = "red"))
     
     #density plot
-    print(plot(density(phy_gls_lam$residuals), main = "Density plot of residuals"))
+    #print(plot(density(phy_gls_lam$residuals), main = "Density plot of residuals"))
     
     #Homoskedasticity (residuals vs fitted values)
-    print(plot(fitted(phy_gls_lam), phy_gls_lam$residuals, xlab = "Fitted", ylab = "Residuals"))
-    print(abline(0,0, col = "red"))
-    dev.off()
+    #print(plot(fitted(phy_gls_lam), phy_gls_lam$residuals, xlab = "Fitted", ylab = "Residuals"))
+    #print(abline(0,0, col = "red"))
+    #dev.off()
     
     ###and do for best model too
-    jpeg(paste0("./output/PCAs/iterations/model_assessment_pc", j, "_iteration", i, "_summary_phylolm", best_model, "_best_model.jpg"), width = 8, height = 6, res = 500, units = "in")
-    par(mfrow=c(2,2))
+    #jpeg(paste0("./output/PCAs/iterations/model_assessment_pc", j, "_iteration", i, "_summary_phylolm", best_model, "_best_model.jpg"), width = 8, height = 6, res = 500, units = "in")
+    #par(mfrow=c(2,2))
     
     #plot residuals vs independent variable
-    print(plot(data$X, get(paste0("phy_gls_", best_model))$residuals, ylab = "Residuals", xlab = "Variable"))
+    #print(plot(data$X, get(paste0("phy_gls_", best_model))$residuals, ylab = "Residuals", xlab = "Variable"))
     
     #Distribution of residuals (normal)
-    qplot <- qqnorm(get(paste0("phy_gls_", best_model))$residuals)
-    print(qplot)
-    print(qqline(get(paste0("phy_gls_", best_model))$residuals, col = "red"))
+    #qplot <- qqnorm(get(paste0("phy_gls_", best_model))$residuals)
+    #print(qplot)
+    #print(qqline(get(paste0("phy_gls_", best_model))$residuals, col = "red"))
     
     #density plot
-    print(plot(density(get(paste0("phy_gls_", best_model))$residuals, main = "Density plot of residuals")))
+    #print(plot(density(get(paste0("phy_gls_", best_model))$residuals, main = "Density plot of residuals")))
     
     #Homoskedasticity (residuals vs fitted values)
-    print(plot(fitted(get(paste0("phy_gls_", best_model))), get(paste0("phy_gls_", best_model))$residuals, xlab = "Fitted", ylab = "Residuals"))
-    print(abline(0,0, col = "red"))
-    dev.off()
+    #print(plot(fitted(get(paste0("phy_gls_", best_model))), get(paste0("phy_gls_", best_model))$residuals, xlab = "Fitted", ylab = "Residuals"))
+    #print(abline(0,0, col = "red"))
+    #dev.off()
     
     
   }
@@ -417,6 +425,11 @@ for (i in 1:length(model_list)){ #test with 1 first
 }
 
 #saveRDS(output_gls, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp.rds")
+#saveRDS(output_best, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp_best_models.rds")
+
+output_gls <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp.rds")
+output_best <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp_best_models.rds")
+
 
 #plot distribution of pvalues for phylo models
 jpeg("./output/PCAs/phylo_gls_pvalues_pcas.jpg", width = 12, height = 8, units = "in", res = 600)
@@ -447,14 +460,15 @@ ggplot(output_gls, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
 dev.off()
 
 #plot distribution of pvalues for phylo models
-jpeg("./output/PCAs/phylolm_best_model_pvalues_pcas.jpg", width = 12, height = 8, units = "in", res = 600)
-ggplot(output_best, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
+jpeg("./output/PCAs/phylolm_best_model_pvalues_pcas.jpg", width = 6, height = 6, units = "in", res = 600)
+#pdf("./output/PCAs/phylolm_best_model_pvalues_pcas.pdf", width = 6, height = 6)
+ggplot(output_best[which(!is.na(output_best$p_value)),], aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
   #geom_jitter(color = "black")+
-  geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black"))) +
+  geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black")), size = 0.75) +
   scale_color_identity()+
-  labs(y = "p-value", x = "PC Axis", title = "Phylogenetic LM - best model")+
+  labs(y = "p-value", x = "PC Axis", title = "Phylogenetic Linear Regressions")+
   geom_hline(aes(yintercept = 0.05), colour = "red")+
   #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
   theme_bw()

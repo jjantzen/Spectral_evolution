@@ -4,6 +4,7 @@ library(tidyr)
 
 #read data - still missing myc data
 complete_data <- readRDS("./data/for_analysis/final_data.rds")
+myc_data <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
 #####VIF assessment
 colnames(complete_data) <- c("Species", "Herb", "Shrub", "Tree", "Woody", "Subclass", "Superorder", "Order", "Family", "Shade", "Drought", "Coarse_soil", "Fine_soil", "Medium_soil", "min_pH", "max_pH", "leaf_persistence", "Raunk_lf", "Habitat", "Raunk_broad")

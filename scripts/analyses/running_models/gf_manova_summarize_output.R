@@ -3,7 +3,7 @@ library(dplyr)
 library(mvMORPH)
 
 #for file in folder
-files <- list.files("./analysis/myc_models/manovas/first_round/", pattern="*.rds", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
+files <- list.files("./analysis/gf_models/92sp_binary/manovas/", pattern="*manova_summary*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
 
 for (i in 1:length(files)){
   #read file
@@ -23,20 +23,24 @@ example
 output_sorted <- output[order(output$iteration),]
 
 #save output
-saveRDS(output_sorted, "./analysis/myc_models/manovas/summarized_manovas_myc_models.rds")
+saveRDS(output_sorted, "./analysis/gf_models/92sp_binary/summarized_manovas_gf_models_92sp_binary.rds")
 
-output_sorted <- readRDS("./analysis/myc_models/manovas/summarized_manovas_myc_models.rds")
+output_sorted <- readRDS("./analysis/gf_models/92sp_binary/summarized_manovas_gf_models_92sp_binary.rds")
 
 
 #get mean of pvalue 
+
+output_sorted_by_pvalue <- output[order(output$pvalue),]
+
 mean(output_sorted$pvalue)
 sd(output_sorted$pvalue)
 mean(output_sorted$test_stat)
 sd(output_sorted$test_stat)
 
-print(manova_output_iteration15_OU_model_)
+print(manova_output_iteration79_OU_model_)
 
 
+manova_output_iteration79_OU_model_
 
 ##################if needed#############
 #for each iteration, get best model (model for lowest GIC)
@@ -117,50 +121,5 @@ sd(best_models_eb$tree_height)
 # max(nodeHeights(ou_trees[[1]]))
 # 
 # halflife <- log(2)/alpha #in units of branch lengths 
-
-##############################
-deltaGIC <- GIC - min(GIC)
-
-minGIC_OU <- -2434426-117713
-minGIC_EB <- -2560278-16510
-
-
--2293811 - 10779
--2293811 + 10779
-
--2560278 - 16510
--2560278 + 16510
-
--2434426 - 117713
--2434426 + 117713
-
--2392054 - 27590
--2392054 + 27590
-
-
-#compare with Artuso paper
-(-40009-70) - (-40056.9-72) #48.9 #3.37–131.60
-
-#min
--40009 - 70 #40079
-#max 
--40009 + 70 #-39939
-
-#lower lower
--40079 - (-40056.9 - 72) #49.9
-
-#lower higher
--40079 - (-40056.9 + 72) #-94.1
-
-#higher higher
--39939 - (-40056.9 - 72) #189.9
-
-#higher lower
--39939 - (-40056.9 + 72) # 45.9
-
-3.37 + (-40056.9 -72) #40132.27
-3.37 - (-40056.9 +72) #39988.27
-
-(-40009+70) - (-40056.9-72) #118.9 #3.37–131.63
 
 

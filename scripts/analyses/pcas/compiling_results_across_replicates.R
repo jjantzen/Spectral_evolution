@@ -98,8 +98,8 @@ mean_sd <- list(mean = ~mean(.x, na.rm = TRUE), sd = ~sd(.x, na.rm = TRUE))
 
 stats_for_all_iterations <- combo %>% 
   dplyr::select(c(1:6, 201:204)) %>% 
-  group_by(species_factor) %>% 
-  summarise(across(V1:V6, mean_sd))
+  dplyr::group_by(species_factor) %>% 
+  dplyr::summarise(across(V1:V6, mean_sd))
 
 for (i in 1:6){
   combo_data_sm <- combo[,c(i,203, 202)]
@@ -166,7 +166,17 @@ rownames(pc2) <- gsub(" ", "_", rownames(pc2))
 rownames(pc3) <- gsub(" ", "_", rownames(pc3))
 #pc3 <- pc3[,c(1:3)]
 
+simmap_tree <- readRDS("./analysis/pca_analysis/myc_simmap_trees.rds")
+
 simmap_tree[[1]]$tip.label <- gsub(" ", "_", simmap_tree[[1]]$tip.label)
+
+consensus_tree_pruned$tip.label <- gsub("_", " ", consensus_tree_pruned$tip.label)
+myc_named <- setNames(data_spectra$myc, rownames(data_spectra$spectra))
+
+simmap_consensus <- make.simmap(consensus_tree_pruned, myc_named, model="SYM", nsim=100)
+summary_simmap <-describe.simmap(simmap_consensus,plot=TRUE,cex=0.7)
+plot(summary_simmap)
+
 
 #plot single map on consensus tree with scores for pc axis 1 and again for pc2
 cols_tree<-setNames(c("blue","orange"),unique(myc_named))
@@ -189,7 +199,7 @@ dev.off()
 #get colours for plotting
 cols_tree<-setNames(c("blue","orange"),unique(myc_named))
 
-cols<-brewer.pal(3,"YlGnBu")
+#cols<-brewer.pal(3,"YlGnBu")
 
 ss<-getStates(simmap_consensus[[1]],"tips")
 x <- setNames(pc1[,2], rownames(pc1))
@@ -256,8 +266,9 @@ boxcols<-setNames(sapply(ss,function(pc1_all,y) y[which(names(y)==pc1_all)],
 #sort colours to match tree and data
 sorted_boxcols <- boxcols[order(match(names(boxcols),simmap_consensus[[1]]$tip.label))]
 
-#chnage names of tree to match data
-simmap_consensus[[1]]$tip.label <- gsub(" ", "_", simmap_consensus[[1]]$tip.label)
+# #chnage names of tree to match data
+# simmap_consensus[[1]]$tip.label <- gsub(" ", "_", simmap_consensus[[1]]$tip.label)
+
 
 #make plot
 jpeg("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores.jpg", height = 10, width = 14, units = "in", res = 600)
@@ -272,6 +283,7 @@ boxplot(pc1_all~factor(names(pc1_all),levels=simmap_consensus[[1]]$tip.label), c
 axis(1)
 abline(v = 0)
 title(xlab="PC 1 scores")
+abline(v = )
 
 boxplot(pc2_all~factor(names(pc2_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
         axes=FALSE,xlim=c(1,Ntip(simmap_consensus[[1]])), xlab = "")
@@ -284,6 +296,94 @@ boxplot(pc3_all~factor(names(pc3_all),levels=simmap_consensus[[1]]$tip.label), c
 axis(1)
 abline(v = 0)
 title(xlab="PC 3 scores")
+
+dev.off()
+
+#make traitgrams
+simmap_consensus[[1]]$tip.label <- gsub(" ", "_", simmap_consensus[[1]]$tip.label)
+names(myc_named) <- gsub(" ", "_", names(myc_named))
+length(myc_named)
+
+tail(colnames(combo))
+
+#get means for pc1 by name
+mean_pc1 <- combo %>% 
+  dplyr::select(V1, species_factor) %>% 
+  dplyr::group_by(species_factor) %>% 
+  dplyr::summarize(mean = mean(V1))
+
+mean_pc1 <- as.data.frame(mean_pc1)
+mean_pc1_list <- setNames(mean_pc1$mean, mean_pc1$species_factor)
+names(mean_pc1_list) <- gsub(" ", "_", names(mean_pc1_list))
+
+mean_pc2 <- combo %>% 
+  dplyr::select(V2, species_factor) %>% 
+  dplyr::group_by(species_factor) %>% 
+  dplyr::summarize(mean = mean(V2))
+
+mean_pc2 <- as.data.frame(mean_pc2)
+mean_pc2_list <- setNames(mean_pc2$mean, mean_pc2$species_factor)
+names(mean_pc2_list) <- gsub(" ", "_", names(mean_pc2_list))
+
+mean_pc3 <- combo %>% 
+  dplyr::select(V3, species_factor) %>% 
+  dplyr::group_by(species_factor) %>% 
+  dplyr::summarize(mean = mean(V3))
+
+mean_pc3 <- as.data.frame(mean_pc3)
+mean_pc3_list <- setNames(mean_pc3$mean, mean_pc3$species_factor)
+names(mean_pc3_list) <- gsub(" ", "_", names(mean_pc3_list))
+
+
+colors_traitgram<-setNames(c("orange","blue"),c("AM", "EM"))
+
+jpeg("./output/PCAs/consensus_plots/mean_pc1_scores_traitgram_myc_dataset.jpg", height = 8, width = 4, units = "in", res = 600)
+par(xaxt="n",yaxt="s")
+phenogram(simmap_consensus[[1]], mean_pc1_list, fsize=0.38, spread.labels = TRUE,ftype="i", xlab = "", ylab="Mean PC1 Scores", colors=colors_traitgram)#c("orange", "blue")) spread.cost = c(2,0), 
+dev.off()
+
+jpeg("./output/PCAs/consensus_plots/mean_pc2_scores_traitgram_myc_dataset.jpg", height = 8, width = 4, units = "in", res = 600)
+par(xaxt="n",yaxt="s")
+phenogram(simmap_consensus[[1]], mean_pc2_list, fsize=0.38, spread.labels = TRUE, ftype="i", ylim = c(-2,2), xlab = "", ylab="Mean PC2 Scores", colors=colors_traitgram)#c("orange", "blue"))
+dev.off()
+
+jpeg("./output/PCAs/consensus_plots/mean_pc3_scores_traitgram_myc_dataset.jpg", height = 8, width = 4, units = "in", res = 600)
+par(xaxt="n",yaxt="s")
+phenogram(simmap_consensus[[1]], mean_pc3_list, fsize=0.38, spread.labels = TRUE, ftype="i", ylim=c(-0.75,0.6), ylab="Mean PC3 Scores",xlab = "", colors=colors_traitgram)#c("orange", "blue"))
+dev.off()
+
+#plotting in one figure
+
+jpeg("./output/PCAs/consensus_plots/mean_scores_traitgram_myc_dataset_pc123.jpg", height = 8, width = 8, units = "in", res = 800)
+pdf("./output/PCAs/consensus_plots/mean_scores_traitgram_myc_dataset_pc123.pdf", height = 8, width = 8)
+layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = TRUE))
+
+par(xaxt="n",yaxt="s")
+a <- phenogram_edited(simmap_consensus[[1]], mean_pc1_list, fsize=0.45, spread.labels = TRUE, ftype="i", ylab="Mean PC1 Scores", xlab="",#spread.cost = c(0,1),
+          colors=colors_traitgram, lwd = 1)#, cex.axis = 0.8)#c("orange", "blue"))
+#par(xaxt="n",yaxt="s",font.lab=1)
+#axis(1)
+#title(xlab="Time since the root",cex.lab=1)
+#axis(2)
+#title(ylab="Mean PC1 Scores",cex.lab=1.2)
+
+par(xaxt="n",yaxt="s")
+b <- phenogram_edited(simmap_consensus[[1]], mean_pc2_list, fsize=0.45, spread.labels = TRUE,  ftype="i", ylab="Mean PC2 Scores", xlab="", ylim=c(-2,2),#spread.cost = c(1,0),
+          colors=colors_traitgram, lwd = 1)#c("orange", "blue"))
+#par(xaxt="n",yaxt="s",font.lab=1)
+#axis(1)
+#title(xlab="Time since the root",cex.lab=1)
+#axis(2)
+#title(ylab="Mean PC2 Scores",cex.lab=1.2)
+
+par(xaxt="n",yaxt="s") #,mar=c(5.1,5.1,2.1,1.1)
+c <- phenogram_edited(simmap_consensus[[1]], mean_pc3_list, fsize=0.45, spread.labels = TRUE, ftype="i", ylab="Mean PC3 Scores", xlab="",ylim=c(-0.75,0.6), #spread.cost = c(2,1), 
+          colors=colors_traitgram, lwd = 1)#c("orange", "blue"))
+#par(xaxt="n",yaxt="s",font.lab=1)
+#axis(1)
+#title(xlab="Time since the root",cex.lab=1)
+#axis(2)
+#title(ylab="Mean PC3 Scores",cex.lab=1.2)
 
 dev.off()
 

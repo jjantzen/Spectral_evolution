@@ -32,14 +32,14 @@ plot_pca_phylo <- function(pca_object, model, axes, groups,  cols, labels) {
   #labels for points
   df_S$labels <- labels
   ggplot(data = df_S, aes(x = xvar, y = yvar))+
-    geom_point(aes(colour = groups), shape = 19, size = 2)+
-    geom_text_repel(label = labels, max.overlaps = 3, size = 3)+
+    geom_point(aes(colour = groups), shape = 19, size = 3)+
+    geom_text_repel(label = labels, max.overlaps = 3, size = 4)+
     #geom_path(data = ell[which(ell$groups == 0),])#, aes(colour = groups, group = groups))+ #, inherit.aes = FALSE
     geom_hline(aes(yintercept = 0))+
     geom_vline(aes(xintercept = 0))+
     labs(y = ylabel, x = xlabel)+
     scale_colour_manual(name = "Mycorrhizal association", labels = c("AM", "EM"), values = rev(levels(factor(cols))))+
     theme_bw()+
-    theme(axis.title=element_text(size=14))
+    theme(axis.title=element_text(size=20))
 }
 
