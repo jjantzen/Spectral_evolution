@@ -1,34 +1,60 @@
 #read output from myc models and summarize parameters
 library(dplyr)
 library(mvMORPH)
+library(stringr)
+
 
 #for file in folder
-files <- list.files("./analysis/myc_gf_models/manovas/", pattern="*manova_summary*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
+#files <- list.files("./analysis/myc_gf_models/manovas/", pattern="*manova_summary*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
+
+files <- list.files("./analysis/myc_gf_models/manovas/", pattern="*manova_output*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
+
+df_output <- data.frame(matrix(nrow=100, ncol = 8))
+colnames(df_output) <- c("iteration", "model", "pvalue_myc", "pvalue_gf", "pvalue_myc:gf", "test_stat_myc", "test_stat_gf", "test_stat_myc:gf")
 
 for (i in 1:length(files)){
   #read file
   parameters <- readRDS(files[i])
   #take output values and put into single dataframe
-  if (i == 1){
-    output <- parameters
-  } else {
-    output <- rbind(output,parameters)
-  }
+  
+  item <- files[i]
+  item <- gsub(paste0("./analysis/myc_gf_models/manovas/manova_output_iteration"), "", item)
+  item <- gsub("_model_.rds", "", item)
+  model <- word(item, 2, sep = "_")
+  iteration <- word(item, 1, sep = "_")
+  
+  df_output$iteration[i] <- iteration
+  
+  df_output$model[i] <- model
+  df_output$pvalue_myc[i] <- parameters$pvalue[1]
+  df_output$pvalue_gf[i] <- parameters$pvalue[2]
+  df_output$`pvalue_myc:gf`[i] <- parameters$pvalue[3]
+  
+  df_output$test_stat_myc[i] <- parameters$stat[1]
+  df_output$test_stat_gf[i] <- parameters$stat[2]
+  df_output$`test_stat_myc:gf`[i] <- parameters$stat[3]
 }
 
-example <- readRDS(files[1])
+example <- readRDS(files[15])
 example
 
 #sort output dataframe
 output_sorted <- output[order(output$iteration),]
 
 #save output
-saveRDS(output_sorted, "./analysis/myc_gf_models/summarized_manovas_myc_gf_models_92sp_binary.rds")
+saveRDS(df_output, "./analysis/myc_gf_models/summarized_manovas_myc_gf_models_92sp_binary_interaction_terms.rds")
 
-output_sorted <- readRDS("./analysis/myc_gf_models/summarized_manovas_myc_gf_models_92sp_binary.rds")
+df_output <- readRDS("./analysis/myc_gf_models/summarized_manovas_myc_gf_models_92sp_binary_interaction_terms.rds")
 
 
 #get mean of pvalue 
+min(!is.na(df_output$pvalue_myc))
+
+min(!is.na(df_output$pvalue_gf))
+
+min(!is.na(df_output$`pvalue_myc:gf`))
+
+df_output[which(df_output$pvalue_myc == 0),]
 
 output_sorted_by_pvalue <- output[order(output$pvalue),]
 
@@ -61,7 +87,6 @@ for (i in 1:length(files)){
 }
 
 
-i
 
 ##################if needed#############
 #for each iteration, get best model (model for lowest GIC)

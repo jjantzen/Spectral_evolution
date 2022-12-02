@@ -5,14 +5,14 @@ library(cowplot)
 
 
 #load models
-best_models_gf_models
+
 #example one
-example_model <- readRDS("./analysis/gf_models/gf_model_EB_iteration98.rds")
-example_model <- lp_model_BM_iteration12
+example_model <- readRDS("./analysis/myc_models/transformed/myc_model_trans_BM_iteration8.rds")
+#example_model <- lp_model_BM_iteration12
 #make format for plot
 attach(mtcars)
 
-jpeg("./output/model_assessment/example_gf_EB_98.jpg", width = 8, height = 6, res = 500, units = "in")
+jpeg("./output/model_assessment/assessment_myc_trans_BM_8_best.jpg", width = 8, height = 6, res = 500, units = "in")
 par(mfrow=c(2,2))
 
 #plot residuals vs independent variable

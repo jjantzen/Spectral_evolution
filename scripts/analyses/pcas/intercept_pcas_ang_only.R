@@ -226,8 +226,8 @@ for (i in 1:length(model_list)){ #test with 1 first
   }
 }
 
-saveRDS(output_aics, "./analysis/pca_analysis/pc_univariate_model_aics_92sp.rds")
-saveRDS(output_aovs, "./analysis/pca_analysis/pc_univariate_model_aovs_92sp.rds")
+saveRDS(output_aics, "./analysis/pca_analysis/pc_univariate_model_aics_ang_only.rds")
+#saveRDS(output_aovs, "./analysis/pca_analysis/pc_univariate_model_aovs_92sp.rds")
 output_aovs[c(900:980), c(1:4)]
 nrow(output_aovs)
 tail(output_aics)
@@ -344,7 +344,11 @@ for (i in 1:length(model_list)){ #test with 1 first
     output_gls_per$AIC[j] <- summary_gls$aic
     output_gls_per$p_value[j] <- summary_gls$coefficients[[8]]
     output_gls_per$coefficient[j] <- summary_gls$coefficients[[2]]
-    output_gls_per$parameter[j] <- summary_gls$optpar
+    if (is.null(summary_gls$optpar) == FALSE){
+      output_gls_per$parameter[j] <- summary_gls$optpar  
+    } else {
+      output_gls_per$parameter[j] <- NA
+    }
     output_gls_per$model[j] <- model_list[[i]]$model
     
     #testing model fit
@@ -424,15 +428,15 @@ for (i in 1:length(model_list)){ #test with 1 first
   }
 }
 
-#saveRDS(output_gls, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp.rds")
-#saveRDS(output_best, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp_best_models.rds")
+#saveRDS(output_gls, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_ang_only.rds")
+#saveRDS(output_best, "./analysis/pca_analysis/pc_univariate_model_gls_parameters_best_models_ang_only.rds")
 
-output_gls <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp.rds")
-output_best <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_92sp_best_models.rds")
+output_gls <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_ang_only.rds")
+output_best <- readRDS("./analysis/pca_analysis/pc_univariate_model_gls_parameters_best_models_ang_only.rds")
 
 
 #plot distribution of pvalues for phylo models
-jpeg("./output/PCAs/phylo_gls_pvalues_pcas.jpg", width = 12, height = 8, units = "in", res = 600)
+jpeg("./output/PCAs/phylo_gls_pvalues_pcas_ang_only.jpg", width = 12, height = 8, units = "in", res = 600)
 ggplot(output_gls, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
@@ -446,7 +450,7 @@ ggplot(output_gls, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
 dev.off()
 
 #plot distribution of pvalues for phylo models
-jpeg("./output/PCAs/phylolm_int_model_pvalues_pcas.jpg", width = 12, height = 8, units = "in", res = 600)
+jpeg("./output/PCAs/phylolm_int_model_pvalues_pcas_ang_only.jpg", width = 12, height = 8, units = "in", res = 600)
 ggplot(output_gls, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
@@ -460,15 +464,15 @@ ggplot(output_gls, aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
 dev.off()
 
 #plot distribution of pvalues for phylo models
-jpeg("./output/PCAs/phylolm_best_model_pvalues_pcas.jpg", width = 6, height = 6, units = "in", res = 600)
-#pdf("./output/PCAs/phylolm_best_model_pvalues_pcas.pdf", width = 6, height = 6)
-ggplot(output_best[which(!is.na(output_best$p_value)),], aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
+#jpeg("./output/PCAs/phylolm_best_model_pvalues_pcas_ang_only.jpg", width = 6, height = 6, units = "in", res = 600)
+pdf("./output/PCAs/phylolm_best_model_pvalues_pcas_ang_only.pdf", width = 6, height = 6)
+ggplot(output_best[which(!is.na(output_best$p_value) & output_best$PC_axis %in% c(1:5)),], aes(x = as.factor(PC_axis), y = round(p_value, 3)))+
   #geom_point()+
   #geom_boxplot(aes(fill = as.factor(name)))+
   #geom_jitter(color = "black")+
   geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black")), size = 0.75) +
   scale_color_identity()+
-  labs(y = "p-value", x = "PC Axis", title = "Phylogenetic Linear Regressions")+
+  labs(y = "p-value", x = "PC Axis")+#, title = "Phylogenetic Linear Regressions"
   geom_hline(aes(yintercept = 0.05), colour = "red")+
   #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
   theme_bw()

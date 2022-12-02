@@ -6,8 +6,7 @@ library(tidyr)
 library(ggplot2)
 
 #load data
-aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_92sp.rds")
-aovs_univariate <- readRDS("./analysis/pca_analysis/pc_univariate_model_aovs_92sp.rds")
+aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_ang_only.rds")
 
 #Summarize output from univariate models and ouwie
 
@@ -26,31 +25,6 @@ best_ouwie_models %>%
   dplyr::summarize(count = n())
 
 
-#do multiple test correction 
-#do I plug every pvalue in, separate by PC axis, by iteration, etc?
-#do by pc axis - not correction for replicate trees
-
-aovs_univariate
-
-aovs_univariate$adjusted_pval[which(aovs_univariate$PC_axis == 1)] <- p.adjust(aovs_univariate$p_value[which(aovs_univariate$PC_axis == 1)], method = p.adjust.methods[1], n = length(aovs_univariate$p_value[which(aovs_univariate$PC_axis == 1)]))
-
-aovs_univariate$adjusted_pval[which(aovs_univariate$iteration == 1)] <- p.adjust(aovs_univariate$p_value[which(aovs_univariate$iteration == 1)], method = p.adjust.methods[1], n = length(aovs_univariate$p_value[which(aovs_univariate$iteration == 1)]))
-
-adjusted_pvalues <- aovs_univariate %>% 
-  dplyr::filter(PC_axis %in% c(1:5)) %>% 
-  dplyr::group_by(iteration) %>% 
-  mutate(pval.adj = p.adjust (p_value, method=p.adjust.methods[1]))
-  #p.adjust(p_value, method = p.adjust.methods[1])
-
-#check for no difference if single pc axis
-aovs_univariate %>% 
-  dplyr::filter(PC_axis %in% c(1)) %>% 
-  dplyr::group_by(iteration) %>% 
-  mutate(pval.adj = p.adjust (p_value, method=p.adjust.methods[1]))
-
-#save output of multiple corrections
-saveRDS(adjusted_pvalues, "./analysis/pca_analysis/mult_corr_anova_ppc_axes.rds")
-
 #plot the aic weights for each model for each pc axis (repeated iterations)
 long_aics <- pivot_longer(aics_ouwie, c(3:9))
 long_aics
@@ -61,7 +35,7 @@ pc_names <- as_labeller(c(`1` = "PC 1", `2` = "PC 2", `3` = "PC 3", `4` = "PC 4"
 
 #plot boxplots for ouwie models
 
-jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_col.jpg", width = 12, height = 8, units = "in", res = 600)
+jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_col_ang_only.jpg", width = 12, height = 8, units = "in", res = 600)
 ggplot(long_aics[which(long_aics$PC_axis %in% c(1:6)),], aes(x = name, y = round(value, 2)))+
   #geom_point()+
   geom_boxplot(aes(fill = as.factor(name)))+
@@ -72,7 +46,7 @@ ggplot(long_aics[which(long_aics$PC_axis %in% c(1:6)),], aes(x = name, y = round
   theme_bw()
 dev.off()
 
-jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_col_plus_jitter.jpg", width = 12, height = 8, units = "in", res = 600)
+jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_col_plus_jitter_ang_only.jpg", width = 12, height = 8, units = "in", res = 600)
 ggplot(long_aics[which(long_aics$PC_axis %in% c(1:6)),], aes(x = name, y = round(value, 2)))+
   #geom_point()+
   geom_boxplot(aes(fill = as.factor(name)))+
@@ -101,46 +75,12 @@ ggplot(aovs_univariate[which(aovs_univariate$PC_axis %in% c(1:6)),], aes(x = as.
   theme_bw()
 dev.off()
 
-#compare reg and adjusted pvalues
-jpeg("./output/PCAs/ouwie/aov_pvalues_pcas_with_adj_pval.jpg", width = 4, height = 4, units = "in", res = 600)
-#pdf("./output/PCAs/ouwie/aov_pvalues_pcas_with_adj_pval.pdf", width = 4, height = 4)
-ggplot(adjusted_pvalues[which(adjusted_pvalues$PC_axis %in% c(1:5)),], aes(x = as.factor(PC_axis), y = round(pval.adj, 3)))+
-  #geom_point()+
-  #geom_boxplot(aes(fill = as.factor(name)))+
-  # geom_jitter(color = "black")+
-  # labs(y = "p-value", x = "PC Axis")+
-  geom_jitter(aes(color = ifelse(pval.adj < 0.05, "red", "black")), size = 0.75) +
-  #geom_jitter(aes(color = ifelse(adjusted_pval < 0.05, "red", "black")), size = 0.75) +
-  scale_color_identity()+
-  labs(y = "p-value", x = "PC Axis", title = "Non-phylogenetic ANOVA")+
-  geom_hline(aes(yintercept = 0.05), colour = "red")+
-  #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
-  #scale_fill_discrete(name = "Model")+
-  theme_bw()
-
-ggplot(aovs_univariate[which(aovs_univariate$PC_axis %in% c(1:6)),], aes(x = as.factor(PC_axis), y = round(adjusted_pval, 3)))+
-  #geom_point()+
-  #geom_boxplot(aes(fill = as.factor(name)))+
-  # geom_jitter(color = "black")+
-  # labs(y = "p-value", x = "PC Axis")+
-  #geom_jitter(aes(color = ifelse(p_value < 0.05, "red", "black")), size = 0.75) +
-  geom_jitter(aes(color = ifelse(adjusted_pval < 0.05, "red", "black")), size = 0.75) +
-  scale_color_identity()+
-  labs(y = "p-value", x = "PC Axis", title = "Non-phylogenetic ANOVA")+
-  geom_hline(aes(yintercept = 0.05), colour = "red")+
-  #facet_wrap(~as.factor(PC_axis), ncol = 3, labeller = pc_names)+
-  #scale_fill_discrete(name = "Model")+
-  theme_bw()
-
-dev.off()
-
 ##do this
 #An eigendecomposition of the Hessian can provide an indication of whether the search returned the maximum likelihood estimates. If all the eigenvalues of the Hessian are positive, then the Hessian is positive definite, and all parameter estimates are considered reliable.
 
 
 
 model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
-
 
 
 

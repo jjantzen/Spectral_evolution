@@ -1,6 +1,7 @@
 #plotting real spectra
 library(spectrolab)
 library(ggplot2)
+library(phytools)
 
 #improve the colour choices
 
@@ -8,7 +9,7 @@ library(ggplot2)
 #plot actual spectra by myc association
 
 #read spectra
-data_spectra <- readRDS("./data/for_analysis/myc_data_list_for_analysis.rds")
+data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
 #convert to spectra object
 spec_for_plot <- as_spectra(data_spectra$spectra)
@@ -43,12 +44,199 @@ dev.off()
 
 jpeg("./output/spectra_by_myc_orange.jpg", res = 600, width = 6, height = 6, units = "in")
 #pdf("./output/spectra_by_myc_orange.pdf", width = 6, height = 6)
-plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association (80% quantile)"
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
 plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
 plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
 plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
-legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,2)]), cex=1)#lty=1,col
+legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,2)]), border = c(colours_touse[c(1,2)]), cex=1)#lty=1,col
 dev.off()
+
+
+#split into ang conifer 
+
+#get the metadata in right format
+ang_trees <- readRDS("./data/for_analysis/ang_only_trees_for_myc.rds")
+
+all_trees <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
+
+ang_species <- ang_trees[[1]]$tip.label
+
+all_species <- all_trees[[1]]$tip.label
+
+#get subset of species for myc
+data_spectra$clade[which(!(data_spectra$species %in% ang_species))] <- "Con"
+data_spectra$clade[which(data_spectra$species %in% ang_species)] <- "Ang"
+
+meta(spec_for_plot)$clade <- data_spectra$clade
+meta(spec_for_plot)$species <- data_spectra$species
+
+str(spec_for_plot)
+
+#get means
+Ang_mean <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),])
+
+Con_mean <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),])
+
+Ang_mean_AM <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Ang" & spec_for_plot$meta$myc == "AM"),])
+Ang_mean_EM <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Ang" & spec_for_plot$meta$myc == "EM"),])
+
+Con_mean_AM <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Con" & spec_for_plot$meta$myc == "AM"),])
+Con_mean_EM <- mean(spec_for_plot[which(spec_for_plot$meta$clade == "Con" & spec_for_plot$meta$myc == "EM"),])
+
+
+
+colours_trans <- c(make.transparent("orange", 0.15), make.transparent("blue", 0.1), make.transparent("#7b3294", 0.2))
+
+jpeg("./output/spectra_by_myc_3panels_individual_means.jpg", res = 600, width = 6, height = 6, units = "in")
+#pdf("./output/spectra_by_myc_3panels.pdf", width = 6, height = 6)
+#plot.new() ## clean up device
+#par(mfrow = c(2, 2))
+par(cex=0.7, mai=c(0.6,0.7,0.1,0.1))
+par(fig=c(0.01,0.99,0.51,0.99))
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,2)]), border = c(colours_touse[c(1,2)]), cex=1)#lty=1,col
+#p <- recordPlot()
+
+
+#plot.new() ## clean up device
+#par(mfrow = c(1, 1))
+par(fig=c(0.01,0.49,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),], ylim = c(0,0.6), total_prob = 0.95, col = "mediumpurple1", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = "mediumpurple1", cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(Ang_mean, lwd = 1, lty = 1.5, col = "purple4", add = TRUE)
+legend(1500, 0.6, legend=c("Angiosperms"), fill=c("mediumpurple1"), border = c("purple4"), cex=0.7)#lty=1,col
+#q1 <- recordPlot()
+
+
+#plot.new() ## clean up device
+par(fig=c(0.51,0.99,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], ylim = c(0,0.6), total_prob = 0.95, col = "lightgreen", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = "seagreen3", cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(Con_mean, lwd = 1, lty = 1.5, col = "darkgreen", add = TRUE)
+legend(1500, 0.6, legend=c("Conifers and fern"), fill=c("seagreen3"), border = c("darkgreen"), cex=0.7)#lty=1,col
+#q2 <- recordPlot()
+
+#ggarrange(p, q1, q2)
+dev.off()
+
+
+colours_trans <- c(make.transparent("orange", 0.4), make.transparent("blue", 0.4), make.transparent("#7b3294", 0.4))
+
+jpeg("./output/spectra_by_myc_3panels_individual_spectra_ang_conifer.jpg", res = 600, width = 6, height = 6, units = "in")
+#pdf("./output/spectra_by_myc_3panels.pdf", width = 6, height = 6)
+#plot.new() ## clean up device
+#par(mfrow = c(2, 2))
+par(cex=0.7, mai=c(0.6,0.7,0.1,0.1))
+par(fig=c(0.01,0.49,0.51,0.99))
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
+plot(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+#plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(1500, 0.6, legend=c("AM"), fill=c(colours_trans[c(1)]), border = c(colours_touse[c(1)]), cex=1)#lty=1,col
+#p <- recordPlot()
+
+par(fig=c(0.51,0.99,0.51,0.99), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+#plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(1500, 0.6, legend=c("EM"), fill=c(colours_trans[c(2)]), border = c(colours_touse[c(2)]), cex=1)#lty=1,col
+#p <- recordPlot()
+
+#plot.new() ## clean up device
+#par(mfrow = c(1, 1))
+par(fig=c(0.01,0.49,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),], ylim = c(0,0.6), total_prob = 0.95, col = "mediumpurple1", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = "mediumpurple1", cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance", border = FALSE)
+plot(Ang_mean, lwd = 1, lty = 1.5, col = "mediumpurple4", add = TRUE)
+legend(1500, 0.6, legend=c("Angiosperm"), fill=c("mediumpurple1"), border = c("mediumpurple4"), cex=0.7)#lty=1,col
+#q1 <- recordPlot()
+
+
+#plot.new() ## clean up device
+par(fig=c(0.51,0.99,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], ylim = c(0,0.6), total_prob = 0.95, col = "lightgreen", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = "seagreen3", cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(Con_mean, lwd = 1, lty = 1.5, col = "darkgreen", add = TRUE)
+legend(1500, 0.6, legend=c("Conifers and fern"), fill=c("seagreen3"), border = c("darkgreen"), cex=0.7)#lty=1,col
+#q2 <- recordPlot()
+
+#ggarrange(p, q1, q2)
+dev.off()
+
+
+#final figure for manuscript
+colours_trans <- c(make.transparent("orange", 0.15), make.transparent("blue", 0.1), make.transparent("#7b3294", 0.2))
+
+jpeg("./output/spectra_by_myc_3panels_ang_con_split_by_myc.jpg", res = 600, width = 6, height = 6, units = "in")
+#pdf("./output/spectra_by_myc_3panels_ang_con_split_by_myc.pdf", width = 6, height = 6)
+#plot.new() ## clean up device
+#par(mfrow = c(2, 2))
+par(cex=0.7, mai=c(0.6,0.7,0.1,0.1), xpd=TRUE)
+par(fig=c(0.01,0.99,0.51,0.99))
+
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], ylim = c(0,0.6), total_prob = 0.95, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], total_prob = 0.95, col = colours_trans[2], border = FALSE, add = TRUE)
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+#plot(spec_for_plot[which(spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+plot(AM_mean, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+plot(EM_mean, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(2000, 0.6, legend=c("AM", "EM"), fill=c(colours_trans[c(1,2)]), border = c(colours_touse[c(1,2)]), cex=1)#lty=1,col
+text(115,0.63, labels=c("a"), cex=2)#lty=1,col
+#mtext('a', side=2, line=10, at=0)
+#title(main="a",line=300, font=2) # adj=1, 
+
+#plot.new() ## clean up device
+#par(mfrow = c(1, 1))
+par(fig=c(0.01,0.49,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Ang"),], ylim = c(0,0.6), total_prob = 0.95, col = "mediumpurple1", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Ang" & spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance", border = FALSE)
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Ang" & spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance", add = TRUE, border = FALSE)
+plot(Ang_mean_AM, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+plot(Ang_mean_EM, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(1500, 0.6, legend=c("Angiosperm AM", "Angiosperm EM"), fill=c(colours_trans[1], colours_trans[2]), border = c(colours_touse[1], colours_touse[2]), cex=0.7)#lty=1,col
+#q1 <- recordPlot()
+text(-180, 0.63, labels=c("b"), cex=2)#lty=1,col
+
+#plot.new() ## clean up device
+par(fig=c(0.51,0.99,0.01,0.49), new = TRUE)
+#plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], ylim = c(0,0.6), total_prob = 0.95, col = "lightgreen", cex.lab = 1, cex.main = 1.2, cex.axis = 1, border = FALSE, xlab = "Wavelength (nm)", ylab = "Reflectance") #main = "Spectra by mycorrhizal association\n(mean with 95% quantile)", 
+#plot(spec_for_plot[which(spec_for_plot$meta$clade == "Con"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = "seagreen3", cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance")
+#plot(Con_mean, lwd = 1, lty = 1.5, col = "darkgreen", add = TRUE)
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Con" & spec_for_plot$meta$myc == "AM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[1], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance", border = FALSE)
+plot_quantile(spec_for_plot[which(spec_for_plot$meta$clade == "Con" & spec_for_plot$meta$myc == "EM"),], lwd = 0.25, ylim = c(0,0.6), lty = 1, col = colours_trans[2], cex.lab = 1, cex.main = 1.2, cex.axis = 1, xlab = "Wavelength (nm)", ylab = "Reflectance", add = TRUE, border = FALSE)
+plot(Con_mean_AM, lwd = 1, lty = 1.5, col = colours_touse[1], add = TRUE)
+plot(Con_mean_EM, lwd = 1, lty = 1.5, col = colours_touse[2], add = TRUE)
+legend(1300, 0.6, legend=c("Conifer and fern AM", "Conifer and fern EM"), fill=c(colours_trans[1], colours_trans[2]), border = c(colours_touse[1], colours_touse[2]), cex=0.7)#lty=1,col
+#q2 <- recordPlot()
+text(-180, 0.63, labels=c("c"), cex=2)#lty=1,col
+#ggarrange(p, q1, q2)
+dev.off()
+
+
+
+
+#convert to spectra object
+spec_for_plot <- as_spectra(data_spectra$spectra)
+
+#get the metadata in right format
+meta(spec_for_plot)$myc <- data_spectra$myc
+
+
+
+
+
+
+
 
 #plot actual spectra by habit
 #get the metadata in right format

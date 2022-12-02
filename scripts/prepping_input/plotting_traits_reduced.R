@@ -208,19 +208,19 @@ colours_touse_2 <- c("green4", "salmon4")
 
 
 #plot into one file
-jpeg("./output/trait_plots/4_predictors_distribution_plot.jpg", height = 10, width = 4, units = "in", res = 600)
+jpeg("./output/trait_plots/4_predictors_distribution_plot.jpg", height = 10, width = 5, units = "in", res = 600)
 
 #make pdf for publication
-#pdf("./output/trait_plots/4_predictors_distribution_plot.pdf", height = 10, width = 4)
+#pdf("./output/trait_plots/4_predictors_distribution_plot.pdf", height = 10, width = 5)
 
 
 #par(mfrow=c(1,4))
-#layout(matrix(c(1,2,3,4), nrow = 2, ncol = 2, byrow = TRUE))
+#layout(matrix(c(1,1,1,1,1,1,1,2), nrow = 1, ncol = 8, byrow = TRUE))
 
 #woodiness
 #cols<-setNames(colours_touse_3[c(3,1)],levels(Woody_myc))
 #shaps <- setNames(shapes_to_use[c(1,2)], levels(Woody_myc))
-plotTree(myc_tree,ftype="i",offset=2,fsize=0.45)
+plotTree(myc_tree,ftype="i",offset=2,fsize=0.45, xlim = c(0,725))#, mar = c(0.1,0.1,0.1,3.5)
 #obj<-get("last_plot.phylo",envir=.PlotPhyloEnv)
 #points(obj$xx[1:Ntip(myc_tree)],
 #       obj$yy[1:Ntip(myc_tree)],pch=shaps[Woody_myc[myc_tree$tip.label]],cex=1,
@@ -261,7 +261,16 @@ points(obj$xx[1:Ntip(myc_tree)]+40,
 legend(-5,7, levels(Myc), pch=shaps, pt.bg=colours_touse[c(1,2)], pt.cex=1.5, title = "Mycorrhizal\nType", bty = "n", cex = 0.75, y.intersp = 1, title.adj = 0, xjust = 0) #or 1,3
 #legend(200,10, levels(Myc), pch=shaps, pt.bg=colours_touse[c(1,2)], pt.cex=2, title = "Mycorrhizal\nType", bty = "n") #or 1,3
 
-legend(355,95, legend = c("GF", "LP", "MT"), bty = "n", horiz = TRUE, text.width=c(0,1.5,0.5), cex = 0.6, x.intersp = 0.7)
+legend(357,94, legend = c("GF", "LP", "MT"), bty = "n", horiz = TRUE, text.width=c(0,1.3,0.4), cex = 0.5, x.intersp = 0.7)#c(0,1.5,0.5)
+
+cladelabels(tree = myc_tree, text = "Pinidae", node=findMRCA(myc_tree,c("Thuja occidentalis", "Pinus banksiana")), offset=9.2, wing.length=1, cex=1)
+cladelabels(tree = myc_tree, text = "Magnoliidae", node=findMRCA(myc_tree,c("Camassia quamash", "Sorbus americana")), offset=6, wing.length=1, cex=1)
+
+cladelabels(tree = myc_tree, text = "Lilianae", node=findMRCA(myc_tree,c("Camassia quamash", "Dactylis glomerata")), offset=6, wing.length=0.8, cex=0.8)
+cladelabels(tree = myc_tree, text = "Rosanae", node=findMRCA(myc_tree,c("Tilia americana", "Sorbus americana")), offset=6.5, wing.length=0.8, cex=0.8)
+cladelabels(tree = myc_tree, text = "Asteranae", node=findMRCA(myc_tree,c("Euthamia graminifolia", "Cornus sericea")), offset=5, wing.length=0.8, cex=0.8)
+#cladelabels(text = "Asteranae", node=findMRCA(myc_tree,c("Euthamia graminifolia", "Cornus sericea")), offset=NULL, wing.length=0.1, cex=1)
+
 
 dev.off()
 

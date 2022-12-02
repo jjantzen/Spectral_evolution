@@ -8,6 +8,7 @@ files <- list.files("./analysis/lp_models/92sp_binary/manovas/", pattern="*manov
 for (i in 1:length(files)){
   #read file
   parameters <- readRDS(files[i])
+  
   #take output values and put into single dataframe
   if (i == 1){
     output <- parameters
@@ -38,6 +39,8 @@ mean(output_sorted$test_stat)
 sd(output_sorted$test_stat)
 
 print(manova_output_iteration79_OU_model_)
+
+min(output_sorted$pvalue)
 
 
 manova_output_iteration79_OU_model_

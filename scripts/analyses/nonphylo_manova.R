@@ -14,7 +14,7 @@ library(factoextra)
 
 myc_data <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
-new_spectra <- readRDS("./data/tidy/new_spectra_matched_trees.rds")
+#new_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
 
 #check data
 
@@ -68,9 +68,11 @@ pca_data_frame <- list(pcas = spectra.pca$x, myc = myc_data$myc)
 pca_data_frame$pcas[,c(1:6)]
 
 #test multivariate comparison of AM vs EM for top 20 pc axes
-res.man <- manova(pcas[,c(1:20)] ~ myc, data = pca_data_frame)
+#res.man <- manova(pcas[,c(1:20)] ~ myc, data = pca_data_frame) #pvalue - 0.0004482
 
-summary(res.man) #pvalue - 0.0004482
+res.man <- manova(pcas[,c(1:6)] ~ myc, data = pca_data_frame)
+
+summary(res.man) #p = 6.037e-05
 summary.aov(res.man)
 
 sum_res <- summary(res.man)
@@ -78,7 +80,7 @@ colnames(sum_res$stats)
 #get rank of pcs which are most sig to least sig
 
 #get output into new dataframe
-df_output <- data.frame(matrix(nrow=20, ncol = 4))
+df_output <- data.frame(matrix(nrow=6, ncol = 4))
 colnames(df_output)[1] <- "iteration"
 class(df_output[,1]) <- "numeric"
 colnames(df_output)[2] <- "pvalue"
@@ -102,7 +104,14 @@ for (i in 1:length(summary.aov(res.man))){
 sorted_pc_axes_pvalues <- df_output %>% 
   arrange(pvalue)
 
-saveRDS(sorted_pc_axes_pvalues, "./analysis/nonphylo_manova/summary_manova_pc_results.rds")
+saveRDS(sorted_pc_axes_pvalues, "./analysis/nonphylo_manova/summary_manova_pc_results_top6_axes.rds")
+
+#do multiple corrections 
+sorted_pc_axes_pvalues <- readRDS("./analysis/nonphylo_manova/summary_manova_pc_results_top6_axes.rds")
+
+
+sorted_pc_axes_pvalues$padjust_holm <- p.adjust(sorted_pc_axes_pvalues$pvalue, method = p.adjust.methods[1])
+
 
 #just looking at top 15 axes
 res.man_top_15 <- manova(pcas[,c(1:15)] ~ myc, data = pca_data_frame)
@@ -148,11 +157,11 @@ vectors_for_plotting <- vectors_df %>% tidyr::gather(., pc_axis, value, -wavelen
 vectors_for_plotting$pc_axis <- gsub("PC", "", vectors_for_plotting$pc_axis)
 class(vectors_for_plotting$pc_axis) <- "numeric"
 
-pc_labs <- paste("PC", c(1:15))
-names(pc_labs) <- c(1:15)
+pc_labs <- paste("PC", c(1:6))
+names(pc_labs) <- c(1:6)
 
-jpeg(paste0("./output/PCAs/nonphylo_myc_loadings_top15.jpg"), res = 400, width = 15, height = 15, units = "in")
-ggplot(vectors_for_plotting[which(vectors_for_plotting$pc_axis %in% c(1:15)),], aes(x=wavelength,y=value)) + 
+jpeg(paste0("./output/PCAs/nonphylo_myc_loadings_top6.jpg"), res = 400, width = 15, height = 15, units = "in")
+ggplot(vectors_for_plotting[which(vectors_for_plotting$pc_axis %in% c(1:6)),], aes(x=wavelength,y=value)) + 
   geom_bar(stat = "identity")+
   facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
   theme(strip.text.x = element_text(size = 15))+

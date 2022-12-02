@@ -4,7 +4,8 @@ library(mvMORPH)
 
 #for file in folder
 files <- list.files("./analysis/gf_models/92sp_binary/manovas/", pattern="*manova_summary*", all.files=FALSE, full.names=TRUE, include.dirs = FALSE)
-
+i <- 3
+i <- 100
 for (i in 1:length(files)){
   #read file
   parameters <- readRDS(files[i])
@@ -21,6 +22,8 @@ example
 
 #sort output dataframe
 output_sorted <- output[order(output$iteration),]
+output_sorted$iteration[2] <- 100
+output_sorted <- output_sorted[order(output_sorted$iteration),]
 
 #save output
 saveRDS(output_sorted, "./analysis/gf_models/92sp_binary/summarized_manovas_gf_models_92sp_binary.rds")

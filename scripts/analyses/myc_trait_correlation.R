@@ -18,6 +18,8 @@ rownames(myc_data_df) <- myc_data_df$species
 #add woodiness
 myc_data_df$woody <- complete_data$Woody[which(complete_data$Species %in% myc_data_df$species)]
 
+nrow(myc_data_df)
+
 #chi squared tests
 chisq.test(myc_data_df$woody, myc_data_df$lp) #0.9681
 chisq.test(myc_data_df$woody, myc_data_df$gf) #<2.2e-16

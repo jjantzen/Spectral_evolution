@@ -1,10 +1,13 @@
 #plot two confusion matrices together
+library(RColorBrewer)
 
 # Classic palette BuPu, with 4 colors
 coul <- brewer.pal(11, "Spectral") 
 
 # Add more colors to this palette :
 coul <- colorRampPalette(coul)(2)
+
+coul <- c("#FFFFFF", "#FFFFFF")
 
 pie(rep(1, length(coul)), col = coul , main="") 
 
@@ -24,24 +27,24 @@ jpeg("./output/plsda_confusion_matrix_AM_EM_all_vs_ang.jpg", height = 5, width =
 par(oma = c(0,1,1,1))
 #plot it
 layout(matrix(c(1,2), nrow = 1, ncol = 2, byrow = TRUE))#, widths=c(2, 1))
-corrplot::corrplot(tab_perc_all_matrix, is.corr = T, col = c(coul, coul), tl.col = 1, cl.pos = "n",
-                   tl.offset =0.7, tl.cex = 0.9, tl.srt = 0,
+corrplot::corrplot(tab_perc_all_matrix, is.corr = T, col = c(coul, coul), tl.col = 1, cl.pos = "n", #
+                   tl.offset =0.7, tl.cex = 0.9, tl.srt = 0, outline = TRUE,
                    addCoef.col ='black', number.font = 1, number.cex = 0.9, addCoefasPercent = T, na.label = " ", mar = c(0.3,2,0.3,1)) 
 
 mtext("Prediction",2, line=3.1, cex=1.2)
 mtext("Reference",3, line = 1.2, cex=1.2)
 mtext("Classification accuracy (%)", line = -17, cex=0.9)
-mtext("A) All taxa", 3, line = 3, cex=1.5, adj= 0)
+mtext("a)", 3, line = 3, cex=1.5, adj= 0)
 #mtext("A", 3, line = 3, cex=2, adj = 0)
 
-corrplot::corrplot(tab_perc_ang_matrix, is.corr = T, col = c(coul, coul), tl.col = 1, cl.pos = "n",
-                   tl.offset =0.7, tl.cex = 0.9, tl.srt = 0,
+corrplot::corrplot(tab_perc_ang_matrix, is.corr = T,  col = c(coul, coul), tl.col = 1, cl.pos = "n", #
+                   tl.offset =0.7, tl.cex = 0.9, tl.srt = 0,outline = TRUE,
                    addCoef.col ='black', number.font = 1, number.cex = 0.9, addCoefasPercent = T, na.label = " ", mar = c(0.3,2,0.3,1)) 
 
 mtext("Prediction",2, line=3.1, cex=1.2)
 mtext("Reference",3, line = 1.2, cex=1.2)
 mtext("Classification accuracy (%)", line = -17, cex=0.9)
-mtext("B) Angiosperms only", 3, line = 3, cex=1.5,  adj = 0)
+mtext("b)", 3, line = 3, cex=1.5,  adj = 0)
 #mtext("B", 3, line = 3, cex=2,)
 
 dev.off()

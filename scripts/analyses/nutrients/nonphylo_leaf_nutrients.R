@@ -66,6 +66,15 @@ Narea_output <- summary(model_Narea)
 Nmass_aov <- aov(Nmass ~ myc, data = trait_data_combo_2)
 summary(Nmass_aov)
 
+
+#make dataframe for output values
+df_output <- data.frame(matrix(nrow=7, ncol = 3))
+colnames(df_output) <- c("trait", "pvalue", "phylo_pvalue")
+
+df_output$trait[1] <- "Nmass"
+df_output$pvalue[1] <- summary_aov[[1]]$`Pr(>F)`[1]
+
+
 #phylo model
 length(pruned_tree_2$tip.label)
 vcv_matrix <- vcv.phylo(pruned_tree_2, cor=TRUE)
@@ -76,8 +85,11 @@ phylo_Nmass <- gls(Nmass ~ myc, data=trait_data_combo_2, correlation=corPagel(1,
 phylo_Narea <- gls(Narea ~ myc, data=trait_data_combo_2, correlation=corPagel(1, pruned_tree_2, form = ~Species))
 
 plot(phylo_Nmass)    # residual plot
-summary(phylo_Nmass) # coefficients, SE's, fit statistics
+summary_phylo <- summary(phylo_Nmass) # coefficients, SE's, fit statistics
 confint(phylo_Nmass) # confidence intervals for coefficients
+
+df_output$phylo_pvalue[1] <- summary_phylo$tTable[8]
+
 
 plot(phylo_Narea)    # residual plot
 summary(phylo_Narea) # coefficients, SE's, fit statistics
@@ -109,8 +121,16 @@ colnames(trait_data_combo_3)[1] <- "Species"
 phylo_ligninmass <- gls(lignin_mass ~ myc, data=trait_data_combo_3, correlation=corPagel(1, pruned_tree_3, form = ~Species))
 
 plot(phylo_ligninmass)    # residual plot
-summary(phylo_ligninmass) # coefficients, SE's, fit statistics
+summary_phylo <- summary(phylo_ligninmass) # coefficients, SE's, fit statistics
 confint(phylo_ligninmass) # confidence intervals for coefficients
+
+
+df_output$trait[2] <- "Lignin_mass"
+df_output$pvalue[2] <- ligninmass_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[2] <- summary_phylo$tTable[8]
+
+
+
 
 phylo_ligninarea <- gls(lignin_area ~ myc, data=trait_data_combo_3, correlation=corPagel(1, pruned_tree_3, form = ~Species))
 
@@ -143,8 +163,14 @@ phylo_LMA <- gls(LMA ~ myc, data=trait_data_combo_all, correlation=corPagel(1, p
 
 
 plot(phylo_LMA)    # residual plot
-summary(phylo_LMA) # coefficients, SE's, fit statistics
+summary_phylo <- summary(phylo_LMA) # coefficients, SE's, fit statistics
 confint(phylo_LMA) # confidence intervals for coefficients
+
+
+df_output$trait[3] <- "LMA"
+df_output$pvalue[3] <- LMA_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[3] <- summary_phylo$tTable[8]
+
 
 #EWT
 model_EWT <- lm(EWT ~ myc, data = trait_data_combo_all) 
@@ -163,8 +189,13 @@ phylo_EWT <- gls(EWT ~ myc, data=trait_data_combo_all, correlation=corPagel(1, p
 
 
 plot(phylo_EWT)    # residual plot
-summary(phylo_EWT) # coefficients, SE's, fit statistics
+summary_phylo <- summary(phylo_EWT) # coefficients, SE's, fit statistics
 confint(phylo_EWT) # confidence intervals for coefficients
+
+
+df_output$trait[4] <- "EWT"
+df_output$pvalue[4] <- EWT_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[4] <- summary_phylo$tTable[8]
 
 #############pigments
 colnames(metadata)
@@ -238,13 +269,36 @@ phylo_car_mass <- gls(car_mass ~ myc, data=trait_data_combo_pig, correlation=cor
 phylo_car_area <- gls(car_area ~ myc, data=trait_data_combo_pig, correlation=corPagel(1, pruned_tree_pig, form = ~Species))
 
 summary(phylo_chla_mass)
-summary(phylo_chla_area)
+phylo_chla <- summary(phylo_chla_area)
 summary(phylo_chlb_mass)
-summary(phylo_chlb_area)
+phylo_chlb <- summary(phylo_chlb_area)
 summary(phylo_car_mass)
-summary(phylo_car_area)
+phylo_car <- summary(phylo_car_area)
 
 #phylo not significant
+
+df_output$trait[5] <- "ChlA_area"
+df_output$pvalue[5] <- chla_area_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[5] <- phylo_chla$tTable[8]
+
+df_output$trait[6] <- "ChlB_area"
+df_output$pvalue[6] <- chlb_area_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[6] <- phylo_chlb$tTable[8]
+
+df_output$trait[7] <- "Car_area"
+df_output$pvalue[7] <- car_area_output$coefficients[8]#$`Pr(>|t|)`
+df_output$phylo_pvalue[7] <- phylo_car$tTable[8]
+
+
+#do multiple correction
+
+df_output$pvalue_adjusted <- p.adjust(df_output$pvalue, method = p.adjust.methods[1])
+df_output$phylo_adjusted <- p.adjust(df_output$phylo_pvalue, method = p.adjust.methods[1])
+
+df_output
+
+
+
 
 
 

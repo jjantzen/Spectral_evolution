@@ -10,8 +10,8 @@ library(grid)
 library(gridExtra) 
 
 #read in data
-data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
-tree_myc <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
+data_spectra <- readRDS("./data/for_analysis/ang_only_data_for_myc.rds")
+tree_myc <- readRDS("./data/for_analysis/ang_only_trees_for_myc.rds")
 
 consensus_tree <- readRDS("./data/for_analysis/myc_consensus_tree.rds")
 
@@ -20,9 +20,9 @@ tips_to_drop <- consensus_tree$tip.label[-which(consensus_tree$tip.label %in% da
 consensus_tree_pruned <- drop.tip(consensus_tree, tip = tips_to_drop)
 
 #saveRDS(model_list, "./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
-model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
+model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_ang_only.rds")
 
-i <- 1
+
 #get pca scores for all replicates into one dataframe
 for (i in 1:100){#0){#length(model_list)){
   #get pca
@@ -52,71 +52,9 @@ for (i in 1:100){#0){#length(model_list)){
 }
 
 
-#saveRDS(combo, "./analysis/pca_analysis/vectors_all_phylo_pc1to6.rds")
+#saveRDS(combo, "./analysis/pca_analysis/vectors_all_phylo_pc1to6_ang_only.rds")
 
-combo <- readRDS("./analysis/pca_analysis/vectors_all_phylo_pc1to6.rds")
-
-
-#getting variance explained for each pc axis
-for (i in 1:100){#0){#length(model_list)){
-  #get pca
-  print(i)
-  pca_best_model <- mvgls.pca(model_list[[i]], plot = FALSE)  
-  
-  tot <- sum(pca_best_model$values)
-  output_variance <- data.frame(matrix(nrow=6, ncol = 3))
-  colnames(output_variance)[1] <- "iteration"
-  class(output_variance[,1]) <- "numeric"
-  colnames(output_variance)[2] <- "PC_axis"
-  #class(output_variance[,2]) <- "numeric"
-  colnames(output_variance)[3] <- "var_explained"
-  class(output_variance[,3]) <- "numeric"
-  
-  j <- 1
-  sum <- 0
-  while (sum < 99) {
-    print(j)
-    val <- round(pca_best_model$values[j] * 100/tot, digits = 2)
-    output_variance$PC_axis[j] <- j
-    output_variance$var_explained[j] <- val
-    
-    if (j ==1){
-      sum <- val
-    } else {
-      sum <- sum(sum, val)
-    }
-    j <- j+1
-  }
-  output_variance$PC_axis[j] <- "cumulative"
-  output_variance$var_explained[j] <- sum
-  
-  output_variance$iteration <- i
-  
-  #combine data
-  if (i == 1){
-    combo <- output_variance
-  } else {
-    combo <- rbind(combo, output_variance)
-  } 
-}
-
-saveRDS(combo, "./analysis/pca_analysis/variance_explained_phylo_pc1to5.rds")
-
-combo <- readRDS("./analysis/pca_analysis/variance_explained_phylo_pc1to5.rds")
-
-#get summary stats for each pc axis
-cum_mean <- combo %>% 
-  dplyr::filter(PC_axis == "cumulative") %>% 
-  dplyr::group_by(PC_axis) %>% 
-  dplyr::summarise(mean = mean(var_explained), sd = sd(var_explained))
-
-
-pc_mean <- combo %>% 
-  dplyr::filter(PC_axis != "cumulative") %>% 
-  dplyr::group_by(PC_axis) %>% 
-  dplyr::summarise(mean = mean(var_explained), sd = sd(var_explained))
-
-
+#combo <- readRDS("./analysis/pca_analysis/vectors_all_phylo_pc1to6_ang_only.rds")
 
 spectra.pca <- prcomp(data_spectra$spectra, center = TRUE, scale. = TRUE)
 prcomp_keeprs <- as.data.frame(spectra.pca$rotation[,c(1:6)], row.names = dimnames(spectra.pca$rotation)[1])
@@ -139,17 +77,19 @@ class(prcomp_long$iteration) <- "integer"
 #combine non phylo with phylo 
 combo_2 <- rbind(combo, prcomp_long)
 
-#saveRDS(combo_2, "./analysis/pca_analysis/vectors_all_phylo_pc1to6_inc_nonphylo.rds")
+saveRDS(combo_2, "./analysis/pca_analysis/vectors_all_phylo_pc1to6_inc_nonphylo_ang_only.rds")
 
-combo_2 <- readRDS("./analysis/pca_analysis/vectors_all_phylo_pc1to6_inc_nonphylo.rds")
+
 
 
 #make labels for plotting
 pc_labs <- paste("PC", c(1:6))
 names(pc_labs) <- c(1:6)
 
-jpeg(paste0("./output/PCAs/consensus_plots/myc_loadings_top10_all_iteration.jpg"), res = 400, width = 15, height = 15, units = "in")
-v <- ggplot(combo_2[which(combo_2$iteration == 0),], aes(x=wavelength,y=value)) +
+unique(combo$pc_axis)
+
+
+v <- ggplot(combo, aes(x=wavelength,y=value)) +
   geom_bar(stat = "identity")+
   facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
   xlab("Wavelength (nm)")+
@@ -159,7 +99,7 @@ v <- ggplot(combo_2[which(combo_2$iteration == 0),], aes(x=wavelength,y=value)) 
 
 v
 
-jpeg(paste0("./output/PCAs/consensus_plots/myc_loadings_top10_all_iteration.jpg"), res = 400, width = 15, height = 15, units = "in")
+jpeg(paste0("./output/PCAs/consensus_plots/myc_loadings_top10_all_iteration_ang_only.jpg"), res = 400, width = 15, height = 15, units = "in")
 #make boxplot for variation in loadings across iterations
 ggplot(combo_2[which(combo_2$iteration != 0),]) +
   geom_boxplot(aes(x = as.factor(wavelength), y = value))+
@@ -171,7 +111,7 @@ ggplot(combo_2[which(combo_2$iteration != 0),]) +
         axis.text.x = element_blank())+
   theme_bw()
 
-ggplot(combo_2[which(combo_2$iteration == 0),], aes(x = as.factor(wavelength), y = value)) +
+#ggplot(combo_2[which(combo_2$iteration == 0),], aes(x = as.factor(wavelength), y = value)) +
   geom_bar(stat = "identity")+
   facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
   xlab("Wavelength (nm)")+
@@ -279,14 +219,12 @@ combo$species_factor <- factor(combo$species,
 ########
 #plotting loadings on pca ouwie plots
 
-aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_92sp.rds")
-aovs_univariate <- readRDS("./analysis/pca_analysis/pc_univariate_model_aovs_92sp.rds")
+aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_ang_only.rds")
+#aovs_univariate <- readRDS("./analysis/pca_analysis/pc_univariate_model_aovs_92sp.rds")
 
 #plot the aic weights for each model for each pc axis (repeated iterations)
 long_aics <- pivot_longer(aics_ouwie, c(3:9))
 long_aics
-
-#colnames(combo)[2] <- "pc_axis"
 
 #write function for labeling facets
 pc_names <- as_labeller(c(`1` = "PC 1", `2` = "PC 2", `3` = "PC 3", `4` = "PC 4", `5` = "PC 5",
@@ -307,34 +245,18 @@ p <- ggplot(long_aics[which(long_aics$PC_axis %in% c(1:3)),], aes(x = name, y = 
 pc_labs <- paste("PC", c(1:3))
 names(pc_labs) <- c(1:3)
 
-q <- ggplot(combo_2[which(combo_2$pc_axis %in% c(1:3)),], aes(x = wavelength, y = value)) + #as.factor()
+q <- ggplot(combo[which(combo$pc_axis %in% c(1:3)),], aes(x = wavelength, y = value)) + #as.factor()
   geom_bar(stat = "identity", aes(fill = as.factor(pc_axis)))+#, show.legend = FALSE
   scale_x_continuous(breaks = c(400, 900, 1400, 1900, 2400), labels = c("400", "900", "1400", "1900", "2400"))+
   facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
   xlab("Wavelength (nm)")+
   ylab("PC Loadings")+ #Vector unit
-  scale_fill_manual(name = "Axis", values = c("#619CFF", "#619CFF", "#619CFF"))+
+  scale_fill_manual(name = "Axis", values = c("#00BA38", "#00BA38", "#00BA38"))+ #c("#619CFF", "#619CFF", "#619CFF")
   geom_hline(yintercept = 0)+
   theme(strip.text.x = element_text(size = 12), strip.background = element_rect(fill = "white", colour = "grey50"), axis.title=element_text(size=12), #axis.ticks.x = element_blank(), axis.text.x = element_blank(),
         panel.border = element_rect(fill = NA, colour = "grey50"), legend.key = element_rect(colour = "grey80"), axis.text = element_text(size = 6),
         legend.title = element_text(size=12), legend.text = element_text(size=10), panel.background = element_rect(fill = "white", colour = NA))
 q
-
-# combo_2
-# 
-# q <- ggplot(combo[which(combo$pc_axis %in% c(1:3)),], aes(x = wavelength, y = value)) + #as.factor()
-#   geom_bar(stat = "identity", aes(fill = as.factor(pc_axis)))+#, show.legend = FALSE
-#   scale_x_continuous(breaks = c(400, 900, 1400, 1900, 2400), labels = c("400", "900", "1400", "1900", "2400"))+
-#   facet_wrap(vars(pc_axis), ncol = 3, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
-#   xlab("Wavelength (nm)")+
-#   ylab("PC Loadings")+ #Vector unit
-#   scale_fill_manual(name = "Axis", values = c("#619CFF", "#619CFF", "#619CFF"))+
-#   geom_hline(yintercept = 0)+
-#   theme(strip.text.x = element_text(size = 12), strip.background = element_rect(fill = "white", colour = "grey50"), axis.title=element_text(size=12), #axis.ticks.x = element_blank(), axis.text.x = element_blank(),
-#         panel.border = element_rect(fill = NA, colour = "grey50"), legend.key = element_rect(colour = "grey80"), axis.text = element_text(size = 6),
-#         legend.title = element_text(size=12), legend.text = element_text(size=10), panel.background = element_rect(fill = "white", colour = NA))
-
-
 # # Get the gtables
 # gA <- ggplotGrob(p)
 # gB <- ggplotGrob(q)
@@ -347,33 +269,8 @@ q
 # grid.newpage()
 # grid.arrange(gA, gB, nrow = 2)
 
-jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_with_loadings.jpg", width = 8, height = 6, units = "in", res = 600)
-#pdf("./output/PCAs/ouwie/boxplot_facet_by_pc_model_with_loadings.pdf", width = 8, height = 6)
-ggarrange(p,q, ncol = 1, common.legend = TRUE, legend = "right", labels = c("a", "b"))# = 2, widths = c(0.5, 1))
-dev.off()
-
-
-#####plot loadings for supp materials (5 axes)
-colnames(combo_2)
-
-pc_labs <- paste("PC", c(1:5))
-names(pc_labs) <- c(1:5)
-
-#plotting loadings for top 5 axes
-q <- ggplot(combo_2[which(combo_2$pc_axis %in% c(1:5)),], aes(x = wavelength, y = value)) + #as.factor()
-  geom_bar(stat = "identity", aes(fill = as.factor(pc_axis)))+#, show.legend = FALSE
-  scale_x_continuous(breaks = c(400, 900, 1400, 1900, 2400), labels = c("400", "900", "1400", "1900", "2400"))+
-  facet_wrap(vars(pc_axis), ncol = 5, labeller = labeller(pc_axis = pc_labs))+# scales = "free"
-  xlab("Wavelength (nm)")+
-  ylab("PC Loadings")+ #Vector unit
-  scale_fill_manual(name = "Axis", values = c("#619CFF", "#619CFF", "#619CFF", "#619CFF", "#619CFF"))+
-  geom_hline(yintercept = 0)+
-  theme(strip.text.x = element_text(size = 12), strip.background = element_rect(fill = "white", colour = "grey50"), axis.title=element_text(size=12), #axis.ticks.x = element_blank(), axis.text.x = element_blank(),
-        panel.border = element_rect(fill = NA, colour = "grey50"), legend.key = element_rect(colour = "grey80"), axis.text = element_text(size = 6),
-        legend.position = "none", legend.title = element_text(size=12), legend.text = element_text(size=10), panel.background = element_rect(fill = "white", colour = NA))
-
-jpeg("./output/PCAs/myc_loadings_pc1to5.jpg", width = 8, height = 6, units = "in", res = 600)
-#pdf("./output/PCAs/myc_loadings_pc1to5.pdf", width = 8, height = 6)
-q
+jpeg("./output/PCAs/ouwie/boxplot_facet_by_pc_model_with_loadings_ang_only.jpg", width = 8, height = 6, units = "in", res = 600)
+#pdf("./output/PCAs/ouwie/boxplot_facet_by_pc_model_with_loadings_ang_only.pdf", width = 8, height = 6)
+ggarrange(p,q, ncol = 1, common.legend = TRUE, legend = "right", labels = c("A", "B"))# = 2, widths = c(0.5, 1))
 dev.off()
 

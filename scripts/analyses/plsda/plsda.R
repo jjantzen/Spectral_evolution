@@ -287,9 +287,9 @@ saveRDS(probis, "./analysis/plsda/PLSDA_fast_T6_probis_19comps.rds")
 saveRDS(confus, "./analysis/plsda/PLSDA_fast_T6_confus_19comps.rds")
 
 # #read files
-# train_fit <- readRDS("./analysis/plsda/PLSDA_fast_train_T6_31comps.rds")
-# probis <- readRDS("./analysis/plsda/PLSDA_fast_T6_probis_31comps.rds")
-# confus <- readRDS("./analysis/plsda/PLSDA_fast_T6_confus_31comps.rds")
+# train_fit <- readRDS("./analysis/plsda/PLSDA_fast_train_T6_19comps.rds")
+# probis <- readRDS("./analysis/plsda/PLSDA_fast_T6_probis_19comps.rds")
+# confus <- readRDS("./analysis/plsda/PLSDA_fast_T6_confus_19comps.rds")
 
 
 ### Probability plot based on mean per class for a number of iteration

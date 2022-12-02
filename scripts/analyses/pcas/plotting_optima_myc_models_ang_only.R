@@ -6,11 +6,12 @@ library(dplyr)
 library(mvMORPH)
 
 #read in models
-model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_for_pcas_92sp.rds")
+#model_list <- readRDS("./analysis/pca_analysis/best_intercept_models_ang_only.rds")
+model_list <- readRDS("./analysis/intercept_models/myc_dataset/ang_only/best_intercept_models_ang_only.rds")
 
 #read in data
-data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
-tree_myc <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
+data_spectra <- readRDS("./data/for_analysis/ang_only_data_for_myc.rds")
+tree_myc <- readRDS("./data/for_analysis/ang_only_trees_for_myc.rds")
 
 consensus_tree <- readRDS("./data/for_analysis/myc_consensus_tree.rds")
 tips_to_drop <- consensus_tree$tip.label[-which(consensus_tree$tip.label %in% data_spectra$species)]
@@ -18,10 +19,13 @@ consensus_tree_pruned <- drop.tip(consensus_tree, tip = tips_to_drop)
 consensus_tree_pruned$tip.label <- gsub("_", " ", consensus_tree_pruned$tip.label)
 
 simmap_tree <- readRDS("./analysis/pca_analysis/myc_simmap_trees.rds")
+tree_drops <- simmap_tree[[1]]$tip.label[-which(simmap_tree[[1]]$tip.label %in% data_spectra$species)]
+simmap_tree <- lapply(simmap_tree,drop.tip,tip=tree_drops)
+
 
 myc_named <- setNames(data_spectra$myc, rownames(data_spectra$spectra))
 
-aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_92sp.rds")
+aics_ouwie <- readRDS("./analysis/pca_analysis/pc_univariate_model_aics_ang_only.rds")
 
 best_ouwie_models <- aics_ouwie %>%
   rowwise() %>%
@@ -96,11 +100,11 @@ for (i in 1:length(model_list)){ #test with 1 first
     
   }
 }
-output_params_all[1,]
 
-#saveRDS(output_parameters_all, "./analysis/pca_analysis/summary_of_thetas_alphas_top3pcas.rds")
 
-output_parameters_all <- readRDS("./analysis/pca_analysis/summary_of_thetas_alphas_top3pcas.rds")
+saveRDS(output_parameters_all, "./analysis/pca_analysis/summary_of_thetas_alphas_top3pcas_ang_only.rds")
+
+output_parameters_all <- readRDS("./analysis/pca_analysis/summary_of_thetas_alphas_top3pcas_ang_only.rds")
 
 #get mean optima for each species (first getting rid of ou1 models)
 
@@ -121,7 +125,7 @@ long_output_parameters <- pivot_longer(output_parameters_all, cols = c(AM_theta,
 
 #plot distribution of theta and alpha
 
-jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc.jpg", height = 10, width = 14, units = "in", res = 600)
+jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc_ang_only.jpg", height = 10, width = 14, units = "in", res = 600)
 all_models <- ggplot(long_output_parameters[-which(long_output_parameters$model == "OU1"),], aes(model, value))+ #
   geom_boxplot()+
   xlab("Model")+
@@ -155,7 +159,7 @@ long_output_parameters %>%
   unique()
 
 
-jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc_no_outliers.jpg", height = 10, width = 14, units = "in", res = 600)
+jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc_no_outliers_ang_only.jpg", height = 10, width = 14, units = "in", res = 600)
 some_models <- ggplot(no_outliers_ou1, aes(model, value))+ #
   geom_boxplot()+
   xlab("Model")+
@@ -170,12 +174,12 @@ some_models <- ggplot(no_outliers_ou1, aes(model, value))+ #
 some_models
 dev.off()
 
-jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc_no_outliers_inc_ou1.jpg", height = 10, width = 14, units = "in", res = 600)
+jpeg("./output/PCAs/consensus_plots/distribution_theta_alpha_pc_ouwie_models_pc_123_myc_no_outliers_inc_ou1_ang_only.jpg", height = 10, width = 14, units = "in", res = 600)
 some_models <- ggplot(no_outliers, aes(model, value))+ #
   geom_boxplot()+
   xlab("Model")+
   ylab("Parameter value")+
-  labs(title = "No outliers and no OU1 models")+
+  labs(title = "No outliers and including OU1 models")+
   facet_grid(PC_axis ~name, scales = "free")+#, labeller = as_labeller(model_names))+
   #geom_hline(yintercept = 100, colour = "red")+
   #geom_hline(yintercept = -100, colour = "red")+
@@ -209,25 +213,25 @@ mean_thetas_inc_ou1 <- no_outliers %>%
 
 
 #read in pc data and trees
-combo <- readRDS("./analysis/pca_analysis/scores_for_all_reps_and_pcs.rds")
+combo <- readRDS("./analysis/pca_analysis/scores_for_all_reps_and_pcs_ang_only.rds")
 
-consensus_tree <- readRDS("./data/for_analysis/myc_consensus_tree.rds")
-
-#read in data
-data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
-tree_myc <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
-
-tips_to_drop <- consensus_tree$tip.label[-which(consensus_tree$tip.label %in% data_spectra$species)]
-
-consensus_tree_pruned <- drop.tip(consensus_tree, tip = tips_to_drop)
+# consensus_tree <- readRDS("./data/for_analysis/myc_consensus_tree.rds")
+# 
+# #read in data
+# data_spectra <- readRDS("./data/for_analysis/myc_data_list_92sp_binary_for_analysis.rds")
+# tree_myc <- readRDS("./data/for_analysis/myc_tree_92sp_for_analysis.rds")
+# 
+# tips_to_drop <- consensus_tree$tip.label[-which(consensus_tree$tip.label %in% data_spectra$species)]
+# 
+# consensus_tree_pruned <- drop.tip(consensus_tree, tip = tips_to_drop)
 
 
 consensus_tree_pruned$tip.label <- gsub("_", " ", consensus_tree_pruned$tip.label)
 myc_named <- setNames(data_spectra$myc, rownames(data_spectra$spectra))
 
 simmap_consensus <- make.simmap(consensus_tree_pruned, myc_named, model="SYM", nsim=100)
-summary_simmap <-describe.simmap(simmap_consensus,plot=TRUE,cex=0.7)
-
+# summary_simmap <-describe.simmap(simmap_consensus,plot=TRUE,cex=0.7)
+# 
 simmap_consensus[[1]]$tip.label <- gsub(" ", "_", simmap_consensus[[1]]$tip.label)
 
 #get data as named list
@@ -242,7 +246,7 @@ names(pc3_all) <- gsub(" ", "_", names(pc3_all))
 
 #get colour states
 
-cols_tree<-setNames(c("blue","orange"),unique(myc_named))
+cols_tree<-setNames(c("orange","blue"),unique(myc_named))
 
 
 ss<-getStates(simmap_consensus[[1]],"tips")
@@ -278,7 +282,7 @@ trans_green <- t_col("brown", 90, name = "trans_green")
 
   
 #make plot
-jpeg("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima.jpg", height = 10, width = 14, units = "in", res = 600)
+jpeg("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima_ang_only.jpg", height = 10, width = 14, units = "in", res = 600)
 
 #par(mfrow=c(1,4))
 layout(matrix(c(1,1,1,2,2,3,3,4,4), nrow = 1, ncol = 9, byrow = TRUE))
@@ -294,8 +298,8 @@ abline(v = 0)
 title(xlab="PC 1 scores")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 1 & no_outliers_ou1$name == "AM_theta")]), col = "orange")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 1 & no_outliers_ou1$name == "EM_theta")]), col = "blue")
-rect(xleft=(mean_thetas$mean[1]+mean_thetas$sd[1]), xright=(mean_thetas$mean[1]-mean_thetas$sd[1]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas$mean[2]+mean_thetas$sd[2]), xright=(mean_thetas$mean[2]-mean_thetas$sd[2]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas$mean[2]+mean_thetas$sd[2]), xright=(mean_thetas$mean[2]-mean_thetas$sd[2]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas$mean[4]+mean_thetas$sd[4]), xright=(mean_thetas$mean[4]-mean_thetas$sd[4]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
 
 
 boxplot(pc2_all~factor(names(pc2_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
@@ -305,8 +309,8 @@ abline(v = 0)
 title(xlab="PC 2 scores")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 2 & no_outliers_ou1$name == "AM_theta")]), col = "orange")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 2 & no_outliers_ou1$name == "EM_theta")]), col = "blue")
-rect(xleft=(mean_thetas$mean[3]+mean_thetas$sd[3]), xright=(mean_thetas$mean[3]-mean_thetas$sd[3]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas$mean[4]+mean_thetas$sd[4]), xright=(mean_thetas$mean[4]-mean_thetas$sd[4]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas$mean[6]+mean_thetas$sd[6]), xright=(mean_thetas$mean[6]-mean_thetas$sd[6]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas$mean[8]+mean_thetas$sd[8]), xright=(mean_thetas$mean[8]-mean_thetas$sd[8]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
 
 
 boxplot(pc3_all~factor(names(pc3_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
@@ -316,8 +320,8 @@ abline(v = 0)
 title(xlab="PC 3 scores")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 3 & no_outliers_ou1$name == "AM_theta")]), col = "orange")
 abline(v = mean(no_outliers_ou1$value[which(no_outliers_ou1$PC_axis == 3 & no_outliers_ou1$name == "EM_theta")]), col = "blue")
-rect(xleft=(mean_thetas$mean[5]+mean_thetas$sd[5]), xright=(mean_thetas$mean[5]-mean_thetas$sd[5]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas$mean[6]+mean_thetas$sd[6]), xright=(mean_thetas$mean[6]-mean_thetas$sd[6]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas$mean[10]+mean_thetas$sd[10]), xright=(mean_thetas$mean[10]-mean_thetas$sd[10]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas$mean[12]+mean_thetas$sd[12]), xright=(mean_thetas$mean[12]-mean_thetas$sd[12]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
 
 
 dev.off()
@@ -326,17 +330,17 @@ dev.off()
 
 #plot including ou1 for pc2
 #make plot
-jpeg("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima_inc_ou1.jpg", height = 9, width = 8, units = "in", res = 600)
-#pdf("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima_inc_ou1.pdf", height = 9, width = 8)
+jpeg("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima_inc_ou1_ang_only.jpg", height = 7, width = 8, units = "in", res = 600)
+#pdf("./output/PCAs/consensus_plots/consensus_myc_pca123_across_reps_boxplot_scores_with_optima_inc_ou1_ang_only.pdf", height = 9, width = 8)
 
 #par(mfrow=c(1,4))
 #layout(matrix(c(1,1,1,2,2,3,3,4,4), nrow = 1, ncol = 9, byrow = TRUE))
 layout(matrix(c(1,1,1,1,1,2,2,3,3,4,4), nrow = 1, ncol = 11, byrow = TRUE))
 
-plot(simmap_consensus[[1]],cols_tree,ftype='i', fsize = 0.6, xlim = c(0,500), mar=c(5.1,1.1,2.1,0.1))
+plot(simmap_consensus[[1]],cols_tree,ftype='i', fsize = 0.6, xlim = c(0,500), mar=c(5.1,7.1,2.1,0.1))
 par(mar=c(5.1,0.1,2.1,1.1))
 
-legend(10, 15,   # Coordinates (x also accepts keywords)
+legend(-20, 8,   # Coordinates (x also accepts keywords)
        c("AM", "EM", "Shared"),#legend, # Vector with the name of each group
        #c("orange", "blue", "brown"),#fill,   # Creates boxes in the legend with the specified colors
        col = c("orange", "blue", "brown"),#par("col"), # Color of lines or symbols
@@ -350,7 +354,7 @@ legend(10, 15,   # Coordinates (x also accepts keywords)
        box.lwd = par("lwd"), # Legend box line width
        box.lty = par("lty"), # Legend box line type
        box.col = par("fg"),  # Legend box line color
-       cex = 1.5,          # Legend size
+       cex = 1.2,          # Legend size
        horiz = FALSE,     # Horizontal (TRUE) or vertical (FALSE) legend
        title = "Optima",      # Legend title
        title.adj = 0.1, 
@@ -359,7 +363,7 @@ legend(10, 15,   # Coordinates (x also accepts keywords)
        xjust = 0
 )
 
-legend(10, 25,   # Coordinates (x also accepts keywords)
+legend(-20, 18,   # Coordinates (x also accepts keywords)
        c("AM", "EM"),#legend, # Vector with the name of each group
        c("orange", "blue"),#fill,   # Creates boxes in the legend with the specified colors
        #col = c("orange", "blue", "brown"),#par("col"), # Color of lines or symbols
@@ -373,7 +377,7 @@ legend(10, 25,   # Coordinates (x also accepts keywords)
        box.lwd = par("lwd"), # Legend box line width
        box.lty = par("lty"), # Legend box line type
        box.col = par("fg"),  # Legend box line color
-       cex = 1.5,          # Legend size
+       cex = 1.2,          # Legend size
        horiz = FALSE,     # Horizontal (TRUE) or vertical (FALSE) legend
        title = "Scores",      # Legend title
        title.adj = 0.25, 
@@ -382,18 +386,20 @@ legend(10, 25,   # Coordinates (x also accepts keywords)
        xjust = 0
 )
 
-boxplot(pc1_all~factor(names(pc1_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
+boxplot(pc1_all~factor(names(pc1_all),levels=simmap_consensus[[1]]$tip.label), border = sorted_boxcols, horizontal=TRUE, #col
         axes=FALSE,xlim=c(1,Ntip(simmap_consensus[[1]])), xlab = "", boxlwd = 0.5, medlwd = 1, whisklwd = 1, staplelwd = 1, outlwd = 0.5, outcex  = 0.5)
 axis(1, cex.axis = 1.5)
 abline(v = 0)
 title(xlab="PC 1 scores", cex.lab = 1.5)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 1 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OUM")]), col = "orange", lty = 1)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 1 & no_outliers$name == "EM_theta" & no_outliers$model_simp %in% "OUM")]), col = "blue", lty = 2)
-rect(xleft=(mean_thetas_inc_ou1$mean[1]+mean_thetas_inc_ou1$sd[1]), xright=(mean_thetas_inc_ou1$mean[1]-mean_thetas_inc_ou1$sd[1]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas_inc_ou1$mean[2]+mean_thetas_inc_ou1$sd[2]), xright=(mean_thetas_inc_ou1$mean[2]-mean_thetas_inc_ou1$sd[2]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 1 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OU1")]), col = "brown", lty = 4)
+rect(xleft=(mean_thetas_inc_ou1$mean[2]+mean_thetas_inc_ou1$sd[2]), xright=(mean_thetas_inc_ou1$mean[2]-mean_thetas_inc_ou1$sd[2]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[4]+mean_thetas_inc_ou1$sd[4]), xright=(mean_thetas_inc_ou1$mean[4]-mean_thetas_inc_ou1$sd[4]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[1]+mean_thetas_inc_ou1$sd[1]), xright=(mean_thetas_inc_ou1$mean[1]-mean_thetas_inc_ou1$sd[1]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_green, border = NA)
 
 
-boxplot(pc2_all~factor(names(pc2_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
+boxplot(pc2_all~factor(names(pc2_all),levels=simmap_consensus[[1]]$tip.label), border = sorted_boxcols, horizontal=TRUE,
         axes=FALSE,xlim=c(1,Ntip(simmap_consensus[[1]])), xlab = "", boxlwd = 0.5, medlwd = 1, whisklwd = 1, staplelwd = 1, outlwd = 0.5, outcex  = 0.5)
 axis(1, cex.axis = 1.5)
 abline(v = 0)
@@ -401,19 +407,21 @@ title(xlab="PC 2 scores", cex.lab = 1.5)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 2 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OUM")]), col = "orange", lty = 1)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 2 & no_outliers$name == "EM_theta" & no_outliers$model_simp %in% "OUM")]), col = "blue", lty = 2)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 2 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OU1")]), col = "brown", lty = 4)
-rect(xleft=(mean_thetas_inc_ou1$mean[4]+mean_thetas_inc_ou1$sd[4]), xright=(mean_thetas_inc_ou1$mean[4]-mean_thetas_inc_ou1$sd[4]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas_inc_ou1$mean[6]+mean_thetas_inc_ou1$sd[6]), xright=(mean_thetas_inc_ou1$mean[6]-mean_thetas_inc_ou1$sd[6]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
-rect(xleft=(mean_thetas_inc_ou1$mean[3]+mean_thetas_inc_ou1$sd[3]), xright=(mean_thetas_inc_ou1$mean[3]-mean_thetas_inc_ou1$sd[3]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_green, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[6]+mean_thetas_inc_ou1$sd[6]), xright=(mean_thetas_inc_ou1$mean[6]-mean_thetas_inc_ou1$sd[6]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[8]+mean_thetas_inc_ou1$sd[8]), xright=(mean_thetas_inc_ou1$mean[8]-mean_thetas_inc_ou1$sd[8]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[5]+mean_thetas_inc_ou1$sd[5]), xright=(mean_thetas_inc_ou1$mean[5]-mean_thetas_inc_ou1$sd[5]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_green, border = NA)
 
-boxplot(pc3_all~factor(names(pc3_all),levels=simmap_consensus[[1]]$tip.label), col = sorted_boxcols, horizontal=TRUE,
+boxplot(pc3_all~factor(names(pc3_all),levels=simmap_consensus[[1]]$tip.label), border = sorted_boxcols, horizontal=TRUE,
         axes=FALSE,xlim=c(1,Ntip(simmap_consensus[[1]])), xlab = "", boxlwd = 0.5, medlwd = 1, whisklwd = 1, staplelwd = 1, outlwd = 0.5, outcex  = 0.5)
 axis(1, cex.axis = 1.5)
 abline(v = 0)
 title(xlab="PC 3 scores", cex.lab = 1.5)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 3 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OUM")]), col = "orange", lty = 1)
 abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 3 & no_outliers$name == "EM_theta" & no_outliers$model_simp %in% "OUM")]), col = "blue", lty = 2)
-rect(xleft=(mean_thetas_inc_ou1$mean[7]+mean_thetas_inc_ou1$sd[7]), xright=(mean_thetas_inc_ou1$mean[7]-mean_thetas_inc_ou1$sd[7]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
-rect(xleft=(mean_thetas_inc_ou1$mean[8]+mean_thetas_inc_ou1$sd[8]), xright=(mean_thetas_inc_ou1$mean[8]-mean_thetas_inc_ou1$sd[8]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+abline(v = mean(no_outliers$value[which(no_outliers$PC_axis == 3 & no_outliers$name == "AM_theta" & no_outliers$model_simp %in% "OU1")]), col = "brown", lty = 4)
+rect(xleft=(mean_thetas_inc_ou1$mean[10]+mean_thetas_inc_ou1$sd[10]), xright=(mean_thetas_inc_ou1$mean[10]-mean_thetas_inc_ou1$sd[10]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_orange, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[12]+mean_thetas_inc_ou1$sd[12]), xright=(mean_thetas_inc_ou1$mean[12]-mean_thetas_inc_ou1$sd[12]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_blue, border = NA)
+rect(xleft=(mean_thetas_inc_ou1$mean[9]+mean_thetas_inc_ou1$sd[9]), xright=(mean_thetas_inc_ou1$mean[9]-mean_thetas_inc_ou1$sd[9]), ybottom=1, ytop=Ntip(simmap_consensus[[1]]), col=trans_green, border = NA)
 
 
 dev.off()
